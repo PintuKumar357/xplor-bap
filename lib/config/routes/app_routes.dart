@@ -11,6 +11,7 @@ import '../../features/apply_course/presentation/screens/apply_course_screen.dar
 import '../../features/apply_course/presentation/screens/course_documents_screen.dart';
 import '../../features/apply_course/presentation/screens/thanks_for_applying_screen.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/health_documents.dart';
+import '../../features/appointmet/presentation/pages/create_appointment/issue_prescription.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/view_appointment.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/view_beneficiary.dart';
 import '../../features/appointmet/presentation/pages/doctor/doctor_detail_screen.dart';
@@ -70,11 +71,14 @@ class AppRoutes {
         return customPageRoute(CreateAppointment(createAppointmentArgs: args,));
 
       case Routes.AddBeneficiaryPage:
-        // final args = settings.arguments as CreateAppointmentArgs?;
         return customPageRoute(AddBeneficiaryPage());
 
+      case Routes.IssuePrescriptionPage:
+        final userData = settings.arguments as UserDataEntity?;
+        return customPageRoute(IssuePrescriptionPage(userData: userData));
+
+
       case Routes.ViewBeneficiaryPage:
-      // final args = settings.arguments as CreateAppointmentArgs?;
         return customPageRoute(ViewBeneficiaryPage());
 
       case Routes.viewAppointmentPage:

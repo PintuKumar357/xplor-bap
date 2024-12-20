@@ -1,0 +1,504 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../../../../../utils/common_top_header.dart';
+import '../../../../on_boarding/domain/entities/user_data_entity.dart';
+
+class IssuePrescriptionPage extends StatefulWidget {
+  final UserDataEntity? userData;
+  const IssuePrescriptionPage({super.key, required this.userData});
+
+  @override
+  _IssuePrescriptionPageState createState() => _IssuePrescriptionPageState();
+}
+
+class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
+  bool _isLoading = false;
+  Map<String, dynamic> doctorData = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHospitalRecords();
+  }
+
+  Future<void> _fetchHospitalRecords() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final url = Uri.parse(
+        'https://testspar.dpgongcp.com/registry/api/v1/Hospital/search');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'offset': 0,
+          'limit': 500,
+          'filters': {},
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        final List<dynamic> records = responseData['data'] ?? [];
+        setState(() {
+          doctorData = {for (var item in records) item["osid"]: item};
+          _isLoading = false;
+        });
+      } else {
+        print('Failed to load hospital records: ${response.statusCode}');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error fetching hospital records: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _navigateToPramaPage(BuildContext context, String doctorName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PramaPage(doctorName: doctorName),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(100),
+        child: CommonTopHeader(
+          title: 'View Prescription',
+          isTitleOnly: false,
+          dividerColor: Colors.grey,
+          onBackButtonPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: _isLoading
+          ? Center(
+        child: CircularProgressIndicator(),
+      )
+          : doctorData.isNotEmpty
+          ? ListView.builder(
+        itemCount: doctorData.length,
+        itemBuilder: (context, index) {
+          final key = doctorData.keys.elementAt(index);
+          final record = doctorData[key];
+          return Card(
+            color: Colors.white,
+            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            elevation: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    record["doctorName"] ?? "No Name",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Prescription Issued Data: ${record["osUpdatedAt"] ?? "No Data"}",
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          print("View pressed for ${record["doctorName"]}");
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: BorderSide(color: Color(0xFF1581BF)),
+                          foregroundColor: Color(0xFF1581BF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text("View"),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          _navigateToPramaPage(
+                            context,
+                            record["doctorName"] ?? "No Name",
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          side: BorderSide(color: Color(0xFF1581BF)),
+                          foregroundColor: Color(0xFF1581BF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text("Order"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      )
+          : Center(
+        child: Text(
+          "No records found",
+          style: TextStyle(fontSize: 18),
+        ),
+      ),
+    );
+  }
+}
+
+
+
+class PramaPage extends StatelessWidget {
+  final String doctorName;
+
+  PramaPage({required this.doctorName});
+
+  // Mock data for pharmacies
+  final List<Map<String, dynamic>> pramaData = [
+    {
+      "name": "HealthCare Pharmacy",
+      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
+      "location": "New York, NY",
+      "distance": "1.2 km",
+    },
+    {
+      "name": "Wellness Meds",
+      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
+      "location": "Los Angeles, CA",
+      "distance": "3.5 km",
+    },
+    {
+      "name": "Prime Pharmacy",
+      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
+      "location": "Chicago, IL",
+      "distance": "2.0 km",
+    },
+    {
+      "name": "CurePoint Pharmacy",
+      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
+      "location": "Houston, TX",
+      "distance": "4.7 km",
+    },
+    {
+      "name": "MediCare Shop",
+      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
+      "location": "San Francisco, CA",
+      "distance": "5.0 km",
+    },
+  ];
+
+  void _navigateToOrderSummaryPage(BuildContext context, String pramaName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OrderSummaryPage(pramaName: pramaName),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(100),
+        child: CommonTopHeader(
+          title: 'Prama List ',
+          isTitleOnly: false,
+          dividerColor: Colors.grey,
+          onBackButtonPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+
+      body: ListView.builder(
+        itemCount: pramaData.length,
+        itemBuilder: (context, index) {
+          final prama = pramaData[index];
+          return Card(
+            color: Colors.white,
+            margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            elevation: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Row for image and details
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Pharmacy Image
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          prama["photo"],
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.broken_image,
+                            size: 60,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      // Pharmacy Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              prama["name"],
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "Location: ${prama["location"]}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              "Distance: ${prama["distance"]}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity, // Makes the button take the full width
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _navigateToOrderSummaryPage(context, prama["name"]);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 7),
+                        side: BorderSide(color: Color(0xFF1581BF), width: 2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        "Place Order",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color:  Color(0xFF1581BF)),
+                      ),
+                    ),
+                  ),
+
+                  // Full-width Place Order Button
+                  // ElevatedButton(
+                  //   onPressed: () {
+                  //     _navigateToOrderSummaryPage(context, prama["name"]);
+                  //   },
+                  //   style: ElevatedButton.styleFrom(
+                  //     backgroundColor: Color(0xFF1581BF),
+                  //     foregroundColor: Colors.white,
+                  //     padding: EdgeInsets.symmetric(vertical: 16),
+                  //     shape: RoundedRectangleBorder(
+                  //       borderRadius: BorderRadius.circular(8),
+                  //     ),
+                  //   ),
+                  //   child: Text(
+                  //     "Place Order",
+                  //     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  //   ),
+                  // ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+class OrderSummaryPage extends StatelessWidget {
+  final String pramaName;
+
+  OrderSummaryPage({required this.pramaName});
+
+  @override
+  Widget build(BuildContext context) {
+    // Example data for the order
+    double baseAmount = 1000.0; // Base amount for the order
+    double taxPercentage = 18.0; // Tax percentage
+    double discount = 150.0; // Fixed discount
+    double shippingFee = 50.0; // Shipping fee
+
+    // Calculations
+    double taxAmount = (baseAmount * taxPercentage) / 100;
+    double totalAmount = baseAmount + taxAmount + shippingFee - discount;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(100),
+        child: CommonTopHeader(
+          title: 'Order Summary',
+          isTitleOnly: false,
+          dividerColor: Colors.grey,
+          onBackButtonPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Order Summary for $pramaName",
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
+            Text(
+              "Details:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              "Prama Name: $pramaName",
+              style: TextStyle(fontSize: 16),
+            ),
+            SizedBox(height: 16),
+            Divider(),
+            Text(
+              "Cost Breakdown:",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Base Amount:", style: TextStyle(fontSize: 16)),
+                Text("₹${baseAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Tax (${taxPercentage.toStringAsFixed(0)}%):", style: TextStyle(fontSize: 16)),
+                Text("₹${taxAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Shipping Fee:", style: TextStyle(fontSize: 16)),
+                Text("₹${shippingFee.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Discount:", style: TextStyle(fontSize: 16)),
+                Text("-₹${discount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16, color: Colors.green)),
+              ],
+            ),
+            Divider(),
+            SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Total Amount:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "₹${totalAmount.toStringAsFixed(2)}",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    print("Order placed for $pramaName");
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text('Order Placed'),
+                        content: Text('Your order for $pramaName has been placed successfully!'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF1581BF),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Text("Place Order"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[300],
+                    foregroundColor: Colors.black,
+                  ),
+                  child: Text("Cancel Order"),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

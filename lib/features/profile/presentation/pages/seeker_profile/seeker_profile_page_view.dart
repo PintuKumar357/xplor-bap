@@ -78,7 +78,12 @@ class _SeekerProfilePageViewState extends State<SeekerProfilePageView> {
           icon: Assets.images.editProfile,
           route: Routes.viewAppointmentPage
       ),
-
+      ProfileCardOptionsEntity(
+          title: "Prescription",
+          subTitle: "Issue Prescription",
+          icon: Assets.images.editProfile,
+          route: Routes.IssuePrescriptionPage
+      ),
       ProfileCardOptionsEntity(
           title: "Health Records",
           subTitle: "Records",
