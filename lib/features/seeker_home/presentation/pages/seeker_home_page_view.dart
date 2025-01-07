@@ -33,7 +33,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
 
   Future<void> _fetchHealthRecords() async {
     final url = Uri.parse(
-        'https://testspar.dpgongcp.com/registry/api/v1/Hospital/search');
+        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search');
 
     setState(() {
       _isLoading = true;

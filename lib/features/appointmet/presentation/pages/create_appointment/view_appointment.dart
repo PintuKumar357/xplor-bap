@@ -35,7 +35,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       _isLoading = true;
     });
     final url = Uri.parse(
-        'https://testspar.dpgongcp.com/registry/api/v1/Hospital/search'); // Replace with actual API endpoint
+        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search'); // Replace with actual API endpoint
 
     try {
       final response = await http.post(
@@ -69,7 +69,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       _isLoading = true;
     });
     final url = Uri.parse(
-        'https://testspar.dpgongcp.com/registry/api/v1/Appointment/search'); // Replace with actual API endpoint
+        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Appointment/search'); // Replace with actual API endpoint
 
     try {
       final response = await http.post(
@@ -302,8 +302,26 @@ class _ViewAppointmentState extends State<ViewAppointment> {
     );
   }
 
-  bool isFutureAppointment(Map<String, dynamic> record) =>
-      DateTime.parse(record["appointmentDate"]).isAfter(DateTime.now());
+  // bool isFutureAppointment(Map<String, dynamic> record) =>
+  //     DateTime.parse(record["appointmentDate"]).isAfter(DateTime.now());
+
+  bool isFutureAppointment(Map<String, dynamic> record) {
+    try {
+      // Extract appointmentDate and preprocess if needed
+      String dateStr = record["appointmentDate"] ?? '';
+      // Remove "Am" or "Pm" if present and default to midnight time
+      if (dateStr.contains("Am") || dateStr.contains("Pm")) {
+        dateStr = dateStr.split(' ')[0]; // Extract the date part only
+        dateStr += "T00:00:00"; // Append midnight time for parsing
+      }
+      DateTime appointmentDate = DateTime.parse(dateStr);
+      return appointmentDate.isAfter(DateTime.now());
+    } catch (e) {
+      print("Error parsing appointment date: $e");
+      return false;
+    }
+  }
+
 }
 
 class WebViewPage extends StatefulWidget {
