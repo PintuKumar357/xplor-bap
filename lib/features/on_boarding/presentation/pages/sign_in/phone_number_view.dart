@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -30,7 +37,7 @@ import '../../../../multi_lang/presentation/blocs/bloc/translate_bloc.dart';
 import '../../../presentation/blocs/otp_bloc/otp_bloc.dart';
 import '../../../presentation/blocs/phone_bloc/phone_bloc.dart';
 import '../../widgets/phone_number_formatter.dart';
-
+import 'package:flutter_svg/flutter_svg.dart';
 part 'phone_number_widgets.dart';
 part 'phone_number_view_sliver.dart';
 
@@ -232,40 +239,57 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
             child: BlocBuilder<PhoneBloc, PhoneState>(
               builder: (context, state) {
                 if (!showCustomScrollView) {
+
                   return Padding(
-                     padding: const EdgeInsets.all(0),
+                    padding: const EdgeInsets.all(0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Replace Text with CommonTopHeader
                         CommonTopHeader(
-                          title: 'Profile Verification',
+                          title: 'Select a Provider',
                           isTitleOnly: false,
-                          dividerColor: Colors.grey, // Use appropriate color
-                          onBackButtonPressed: () => Navigator // Handle back button press
+                          dividerColor: Colors.grey,
+                          onBackButtonPressed: () => Navigator.of(context).pop(),
                         ),
                         SizedBox(height: 10.h), // Adjust spacing between header and cards
 
-                        // ABHAID Card
+                        // ABHAID Card with Margin and Left Image
                         Container(
-                          margin: EdgeInsets.all(10), // Apply 10px margin below the card
+                          margin: EdgeInsets.all(7), // Apply 10px margin below the card
                           child: GestureDetector(
                             onTap: () => _onCardTap('ABHAID'),
                             child: Card(
                               elevation: 4,
-                              color: Colors.white,
+                              color: Colors.white, // Set the background to white
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
-                                child: Column(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.account_circle, size: 50, color: Colors.blue),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'ABHAID',
-                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    // Left side: Image (ABHA)
+                                    SvgPicture.asset(
+                                      'assets/images/abha.svg',  // Path to the SVG image in your assets
+                                      height: 50,                 // Set appropriate height
+                                      width: 50,                  // Set appropriate width
+                                    ),
+                                    SizedBox(width: 16), // Space between image and text
+
+                                    // Main Text and Subtext (ABHA and Continue with ABHA)
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'ABHA',
+                                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Continue with ABHA',
+                                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -273,29 +297,44 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 16.h), // Spacing between cards
 
-                        // Digilocker Card
-                        // Digilocker Card with Margin
+                        // Digilocker Card with Margin and Left Image
                         Container(
-                          margin: EdgeInsets.all(10), // Apply 10px margin below the card
+                          margin: EdgeInsets.all(7), // Apply 10px margin below the card
                           child: GestureDetector(
                             onTap: () => _onCardTap('Digilocker'),
                             child: Card(
                               elevation: 4,
-                              color: Colors.white,
+                              color: Colors.white, // Set the background to white
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.all(16.0),
-                                child: Column(
+                                child: Row(
                                   children: [
-                                    Icon(Icons.folder_shared, size: 50, color: Colors.green),
-                                    SizedBox(height: 8),
-                                    Text(
-                                      'Digilocker',
-                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    // Left side: Image (Digilocker)
+                                    Image.asset(
+                                      Assets.images.digilocker.path,  // Path to the image in your assets
+                                      height: 50,                      // Set appropriate height
+                                      width: 50,                       // Set appropriate width
+                                    ),
+                                    SizedBox(width: 16), // Space between image and text
+
+                                    // Main Text and Subtext (Digilocker and Continue with Digilocker)
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Digilocker',
+                                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Continue with Digilocker',
+                                          style: TextStyle(fontSize: 14, color: Colors.grey),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -307,72 +346,9 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
                     ),
                   );
 
-                  // Display cards if CustomScrollView is not shown
-                  // return Padding(
-                  //   padding: const EdgeInsets.all(16.0),
-                  //   child: Column(
-                  //     crossAxisAlignment: CrossAxisAlignment.stretch,
-                  //     children: [
-                  //       Text(
-                  //         'Profile Verification',
-                  //         textAlign: TextAlign.center,
-                  //         style: TextStyle(
-                  //           fontSize: 20.sp,
-                  //           fontWeight: FontWeight.bold,
-                  //           color: AppColors.black,
-                  //         ),
-                  //       ),
-                  //       SizedBox(height: 10.h),
-                  //       GestureDetector(
-                  //         onTap: () => _onCardTap('ABHAID'),
-                  //         child: Card(
-                  //           elevation: 4,
-                  //           color: Colors.blue[100],
-                  //           shape: RoundedRectangleBorder(
-                  //             borderRadius: BorderRadius.circular(12),
-                  //           ),
-                  //           child: Padding(
-                  //             padding: const EdgeInsets.all(16.0),
-                  //             child: Column(
-                  //               children: [
-                  //                 Icon(Icons.account_circle, size: 50, color: Colors.blue),
-                  //                 SizedBox(height: 8),
-                  //                 Text(
-                  //                   'ABHAID',
-                  //                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  //                 ),
-                  //               ],
-                  //             ),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //       SizedBox(height: 16.h),
-                  //       GestureDetector(
-                  //         onTap: () => _onCardTap('Digilocker'),
-                  //         child: Card(
-                  //           elevation: 4,
-                  //           color: Colors.green[100],
-                  //           shape: RoundedRectangleBorder(
-                  //             borderRadius: BorderRadius.circular(12),
-                  //           ),
-                  //           child: Padding(
-                  //             padding: const EdgeInsets.all(16.0),
-                  //             child: Column(
-                  //               children: [
-                  //                 Icon(Icons.folder_shared, size: 50, color: Colors.green),
-                  //                 SizedBox(height: 8),
-                  //                 Text(
-                  //                   'Digilocker',
-                  //                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  //                 ),
-                  //               ],
-                  //             ),
-                  //           ),
-                  //         ),
-                  //       ),
-                  //     ],
-                  //   ),
-                  // );
+
+
+
                 }
 
                 // Show CustomScrollView if user clicked on a card
@@ -410,3 +386,5 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
     super.dispose();
   }
 }
+
+
