@@ -257,8 +257,8 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
             title: 'HOME',
             isTitleOnly: false,
             dividerColor: Colors.grey, // Use appropriate color
-            onBackButtonPressed: () => Navigator
-
+            // onBackButtonPressed: () => Navigator
+ onBackButtonPressed: () => Navigator.of(context).pop(),
         ),
       ),
 

@@ -59,6 +59,7 @@ class Routes {
   /// Route for the Seeker Home Screen
   static const String seekerHome = "/seekerHome";
 
+  
   static const String startCoursePage = "/startCoursePage";
 
   /// Route for the Course Description

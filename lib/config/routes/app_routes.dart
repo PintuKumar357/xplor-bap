@@ -12,6 +12,7 @@ import '../../features/apply_course/presentation/screens/course_documents_screen
 import '../../features/apply_course/presentation/screens/thanks_for_applying_screen.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/health_documents.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/issue_prescription.dart';
+import '../../features/appointmet/presentation/pages/create_appointment/profile_varification.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/view_appointment.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/view_beneficiary.dart';
 import '../../features/appointmet/presentation/pages/doctor/doctor_detail_screen.dart';
@@ -63,8 +64,7 @@ class AppRoutes {
       // case Routes.HealthRecordsPage:
       //   return customPageRoute(HealthRecordsPage());
 
-      // case Routes.DataTablePage:
-      //   return customPageRoute(DataTablePage());
+
 
       case Routes.createAppointmentsPage:
         final args = settings.arguments as CreateAppointmentArgs?;
