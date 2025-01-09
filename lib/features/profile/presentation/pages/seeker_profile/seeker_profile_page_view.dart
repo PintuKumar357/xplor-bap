@@ -61,33 +61,33 @@ class _SeekerProfilePageViewState extends State<SeekerProfilePageView> {
         icon: Assets.images.editProfile,
       ),
       ProfileCardOptionsEntity(
-          title: "Add Beneficiary",
-          subTitle: "Appointment",
-          icon: Assets.images.editProfile,
-          route: Routes.AddBeneficiaryPage
-      ),
-      ProfileCardOptionsEntity(
-          title: "View Beneficiary",
-          subTitle: "Appointment",
-          icon: Assets.images.editProfile,
+          title: "Beneficiary",
+          subTitle: " Add or Edit Beneficiary",
+          icon: Assets.images.user,
           route: Routes.ViewBeneficiaryPage
       ),
+      // ProfileCardOptionsEntity(
+      //     title: "View Beneficiary",
+      //     subTitle: "Appointment",
+      //     icon: Assets.images.editProfile,
+      //     route: Routes.ViewBeneficiaryPage
+      // ),
       ProfileCardOptionsEntity(
-          title: "View Appointments",
-          subTitle: "Appointment",
-          icon: Assets.images.editProfile,
+          title: "Appointments",
+          subTitle: "View Appointment",
+          icon: Assets.images.benificary,
           route: Routes.viewAppointmentPage
       ),
       ProfileCardOptionsEntity(
           title: "Prescription",
-          subTitle: "Issue Prescription",
-          icon: Assets.images.editProfile,
+          subTitle: "Order medicine",
+          icon: Assets.images.prescription,
           route: Routes.IssuePrescriptionPage
       ),
       ProfileCardOptionsEntity(
           title: "Health Records",
           subTitle: "Records",
-          icon: Assets.images.editProfile,
+          icon: Assets.images.records,
           route: Routes.HealthDocuments
       ),
       ProfileCardOptionsEntity(

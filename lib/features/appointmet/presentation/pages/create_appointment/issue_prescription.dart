@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 import '../../../../../utils/common_top_header.dart';
 import '../../../../on_boarding/domain/entities/user_data_entity.dart';
-
+import 'package:intl/intl.dart';
 class IssuePrescriptionPage extends StatefulWidget {
   final UserDataEntity? userData;
   const IssuePrescriptionPage({super.key, required this.userData});
@@ -47,6 +47,9 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         final List<dynamic> records = responseData['data'] ?? [];
+        print("ok.....................");
+        print(records);
+        print("ok.....................");
         setState(() {
           doctorData = {for (var item in records) item["osid"]: item};
           _isLoading = false;
@@ -73,7 +76,6 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,6 +99,18 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
         itemBuilder: (context, index) {
           final key = doctorData.keys.elementAt(index);
           final record = doctorData[key];
+
+          // Format the date
+          String formattedDate = '';
+          try {
+            if (record["osUpdatedAt"] != null) {
+              DateTime date = DateTime.parse(record["osUpdatedAt"]);
+              formattedDate = "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+            }
+          } catch (e) {
+            formattedDate = 'No Date';
+          }
+
           return Card(
             color: Colors.white,
             margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -106,62 +120,99 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    record["doctorName"] ?? "No Name",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "Prescription Issued Data: ${record["osUpdatedAt"] ?? "No Data"}",
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                  SizedBox(height: 16),
+                  // Top Row: Doctor Photo and Details
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          print("View pressed for ${record["doctorName"]}");
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          side: BorderSide(color: Color(0xFF1581BF)),
-                          foregroundColor: Color(0xFF1581BF),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                      // Doctor Photo
+                      Container(
+                        width: 100,
+                        height: 100,
+                        child: record["doctorPhoto"] != null && record["doctorPhoto"].isNotEmpty
+                            ? Image.network(
+                          record["doctorPhoto"],
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Icon(
+                              Icons.person,
+                              size: 50,
+                              color: Color(0xFF1581BF),
+                            );
+                          },
+                        )
+                            : Icon(
+                          Icons.person,
+                          size: 50,
+                          color: Color(0xFF1581BF),
                         ),
-                        child: Text("View"),
                       ),
-                      ElevatedButton(
-                        onPressed: () {
-                          _navigateToPramaPage(
-                            context,
-                            record["doctorName"] ?? "No Name",
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          side: BorderSide(color: Color(0xFF1581BF)),
-                          foregroundColor: Color(0xFF1581BF),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                      SizedBox(width: 16),
+                      // Doctor Details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              record["doctorName"] ?? "No Name",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            // Text(
+                            //   "Prescription Issued Date: $formattedDate",
+                            //   style: TextStyle(
+                            //     fontSize: 16,
+                            //     color: Colors.grey[700],
+                            //   ),
+                            // ),
+                            Text(
+                              "Prescription Issued Date: ${_formatDateTime(record["osUpdatedAt"])}",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+
+                          ],
                         ),
-                        child: Text("Order"),
                       ),
                     ],
                   ),
+
+                  // Divider
+                  Divider(
+                    color: Colors.grey,
+                    thickness: 1,
+                  ),
+
+                  SizedBox(
+                    width: double.infinity, // Makes the button take full width
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _navigateToPramaPage(
+                          context,
+                          record["doctorName"] ?? "No Name",
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        side: BorderSide(color: Color(0xFF1581BF)),
+                        foregroundColor: Color(0xFF1581BF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text("Order Medicine"),
+                    ),
+                  ),
+
                 ],
               ),
             ),
           );
+
         },
       )
           : Center(
@@ -172,6 +223,24 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
       ),
     );
   }
+  // Helper function to format the date
+  String _formatDateTime(String? isoDate) {
+    if (isoDate == null || isoDate.isEmpty) {
+      return "No Data";
+    }
+
+    try {
+      // Parse the ISO date
+      DateTime dateTime = DateTime.parse(isoDate);
+      // Format the date in dd-MM-yyyy hh:mm a format
+      return DateFormat('dd-MM-yyyy hh:mm a').format(dateTime);
+    } catch (e) {
+      // Handle parsing errors
+      print("Error formatting date: $e");
+      return "Invalid Date";
+    }
+  }
+
 }
 
 
@@ -225,24 +294,7 @@ class PramaPage extends StatelessWidget {
       "location": "Electronic City, Bangalore",
       "distance": "8.3 km",
     },
-    {
-      "name": "Trust Pharmacy",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
-      "location": "Bellandur, Bangalore",
-      "distance": "7.0 km",
-    },
-    {
-      "name": "LifeLine Drugs",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
-      "location": "Hebbal, Bangalore",
-      "distance": "10.0 km",
-    },
-    {
-      "name": "QuickMeds Pharmacy",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
-      "location": "Yeshwanthpur, Bangalore",
-      "distance": "9.5 km",
-    },
+
   ];
 
   void _navigateToOrderSummaryPage(BuildContext context, String pramaName) {

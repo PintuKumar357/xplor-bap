@@ -8,7 +8,7 @@ import '../../../../../utils/app_dimensions.dart';
 import '../../../../../utils/common_top_header.dart';
 import '../../../../../utils/widgets/app_background_widget.dart';
 import '../../../../on_boarding/domain/entities/user_data_entity.dart';
-
+import 'package:intl/intl.dart';
 class ViewAppointment extends StatefulWidget {
   final UserDataEntity? userData;
 
@@ -52,6 +52,9 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         final List<dynamic> records = responseData['data'] ?? [];
+        print("ok..............");
+        print(records);
+        print("ok..............");
         setState(() {
           doctorData = {for (var item in records) item["osid"]: item};
           _isLoading = false;
@@ -88,6 +91,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         final List<dynamic> records = responseData['data'] ?? [];
+        print(records);
         setState(() {
           dataList = records
               .map((record) => {
@@ -209,17 +213,36 @@ class _ViewAppointmentState extends State<ViewAppointment> {
                                         SizedBox(height: 5),
                                         Text(
                                           doctor != null
+                                              ? 'Beneficiary: ${record["name"] ?? 'patientName'}'  // Display "PatientName: record['name']" or "patientName" if null
+                                              : 'PatientName: patientName',  // Default when doctor is null
+                                          style: TextStyle(fontSize: 14),
+                                        ),
+
+                                        // Text(
+                                        //   doctor != null
+                                        //       ?  record["name"]??
+                                        //       'patientName '
+                                        //       : ' patientName',
+                                        //   style: TextStyle(fontSize: 14),
+                                        // ),
+                                        SizedBox(height: 5),
+                                        Text(
+                                          doctor != null
                                               ? doctor['hospitalName'] ??
                                               'Hospital Name'
                                               : 'Hospital Name',
                                           style: TextStyle(fontSize: 14),
                                         ),
                                         SizedBox(height: 5),
+                                        // Text(
+                                        //   "Appointment Time: " +
+                                        //       record['appointmentDate'] ??
+                                        //       'N/A',
+                                        //   style: TextStyle(fontSize: 14),
+                                        // ),
                                         Text(
-                                          "Appointment Time: " +
-                                              record['appointmentDate'] ??
-                                              'N/A',
-                                          style: TextStyle(fontSize: 14),
+                                          "Appointment Time: ${record['appointmentDate'].toString().replaceAll('â¯', ' ').trim()}",
+                                          style: const TextStyle(fontSize: 14),
                                         ),
                                       ],
                                     ),
@@ -321,6 +344,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       return false;
     }
   }
+
 
 }
 

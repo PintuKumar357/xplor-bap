@@ -87,7 +87,9 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/edit_large.svg
   String get editLarge => 'assets/images/edit_large.svg';
-
+  String get benificary => 'assets/images/group-people-svgrepo-com.svg';
+  AssetGenImage get benificaryimage =>
+      const AssetGenImage('assets/images/group-people-svgrepo-com.png');
   /// File path: assets/images/edit_profile.svg
   String get editProfile => 'assets/images/edit_profile.svg';
 
@@ -282,7 +284,7 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/user.svg
   String get user => 'assets/images/user.svg';
-
+  String get prescription => 'assets/images/Prescription.svg';
   /// File path: assets/images/verify_otp_screen_logo.svg
   String get verifyOtpScreenLogo => 'assets/images/verify_otp_screen_logo.svg';
 
@@ -295,11 +297,15 @@ class $AssetsImagesGen {
   /// File path: assets/images/welcome_page.svg
   String get welcomePage => 'assets/images/welcome_page.svg';
 
+  String get records => 'assets/images/record.svg';
   /// File path: assets/images/white_right_arrow.svg
   String get whiteRightArrow => 'assets/images/white_right_arrow.svg';
 
   /// List of all assets
   List<dynamic> get values => [
+    records,
+    benificaryimage,
+    benificary,
         accessLocation,
         accountPrivacy,
         add,
@@ -310,6 +316,7 @@ class $AssetsImagesGen {
         claimedAmount,
         coins,
         consent,
+    prescription,
         courseTutorIcon,
         cross,
         dashboardWave,

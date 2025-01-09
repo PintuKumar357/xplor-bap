@@ -2421,7 +2421,15 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                       setState(() => _selectedBeneficiary = value);
                       Navigator.pop(context);
                     },
+
                   ),
+                  onTap: () {
+                    // Trigger the same behavior as the Radio button when ListTile is tapped
+                    setState(() {
+                      _selectedBeneficiary = defaultBeneficiary; // Select the value
+                    });
+                    Navigator.pop(context); // Close the dialog or popup
+                  },
                 )
               else
                 Expanded(
@@ -2429,18 +2437,49 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                     itemCount: _beneficiaries.length,
                     itemBuilder: (context, index) {
                       final beneficiary = _beneficiaries[index];
+                      // return ListTile(
+                      //   // title: Text(beneficiary.name),
+                      //   title: Text(
+                      //     beneficiary.name.isNotEmpty
+                      //         ? '${beneficiary.name[0].toUpperCase()}${beneficiary.name.substring(1)}'
+                      //         : 'No Name', // Fallback if name is empty
+                      //   ),
+                      //   subtitle: Text(beneficiary.relationship),
+                      //   leading: Radio<Beneficiary>(
+                      //     value: beneficiary,
+                      //     groupValue: _selectedBeneficiary,
+                      //     onChanged: (value) {
+                      //       setState(() => _selectedBeneficiary = value);
+                      //       Navigator.pop(context);
+                      //     },
+                      //   ),
+                      // );
                       return ListTile(
-                        title: Text(beneficiary.name),
+                        title: Text(
+                          beneficiary.name.isNotEmpty
+                              ? '${beneficiary.name[0].toUpperCase()}${beneficiary.name.substring(1)}'
+                              : 'No Name', // Fallback if name is empty
+                        ),
                         subtitle: Text(beneficiary.relationship),
                         leading: Radio<Beneficiary>(
                           value: beneficiary,
                           groupValue: _selectedBeneficiary,
                           onChanged: (value) {
-                            setState(() => _selectedBeneficiary = value);
-                            Navigator.pop(context);
+                            setState(() {
+                              _selectedBeneficiary = value; // Update the selected beneficiary
+                            });
+                            Navigator.pop(context); // Close the dialog or popup
                           },
                         ),
+                        onTap: () {
+                          // Trigger the same behavior as the Radio button when ListTile is tapped
+                          setState(() {
+                            _selectedBeneficiary = beneficiary; // Select the value when ListTile is tapped
+                          });
+                          Navigator.pop(context); // Close the dialog or popup
+                        },
                       );
+
                     },
                   ),
                 ),
@@ -2508,12 +2547,22 @@ class _CreateAppointmentState extends State<CreateAppointment> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: 16.0),
-            ListTile(
-              title: Text("Select Date"),
-              subtitle: Text("${selectedDate.toLocal()}".split(' ')[0]),
-              trailing: Icon(Icons.calendar_today),
-              onTap: () => _selectDate(context),
+            Card(
+              color: Colors.white,
+              elevation: 4, // Adds a shadow effect
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8), // Rounded corners
+              ),
+              margin: EdgeInsets.all(0), // Adds space around the card
+              child: ListTile(
+                title: Text("Select Date"),
+                subtitle: Text("${selectedDate.toLocal()}".split(' ')[0]),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () => _selectDate(context),
+              ),
             ),
+
+
             SizedBox(height: 16.0),
 
             // Morning Slots
@@ -2534,7 +2583,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                   },
                   selectedColor: Colors.blue,
                   backgroundColor: Colors.blue,
-                  disabledColor: Colors.grey,
+                  disabledColor: Colors.grey[500],
                 );
               }).toList(),
             )
@@ -2559,30 +2608,41 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                   },
                   selectedColor: Colors.blue,
                   backgroundColor: Colors.blue,
-                  disabledColor: Colors.grey,
+                  disabledColor: Colors.grey[500],
                 );
               }).toList(),
             )
                 : Text("No evening slots available"),
             SizedBox(height: 16.0),
-
+            Text(
+              "Select Beneficiary",
+              style: TextStyle(
+                fontSize: 14.0, // Adjust font size as needed
+                fontWeight: FontWeight.bold, // Makes the text bold
+              ),
+            ),
+            SizedBox(height: 2.0),
             // Select Beneficiary Button
             ElevatedButton(
               onPressed: () {
                 _showBeneficiariesPopup();  // Show beneficiary selection popup
               },
-              child: Text(_selectedBeneficiary == null
-                  ? 'Select Beneficiary'
-                  : _selectedBeneficiary!.name),
+              child: Text(
+                _selectedBeneficiary == null
+                    ? 'Select Beneficiary'
+                    : '${_selectedBeneficiary!.name[0].toUpperCase()}${_selectedBeneficiary!.name.substring(1)} (${_selectedBeneficiary!.relationship})',
+              ),
+
+
+
               style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white,
-                backgroundColor: Colors.blue,
+                foregroundColor: Colors.blue,
+                backgroundColor: Colors.white,
                 minimumSize: Size(double.infinity, 50),
-              ).copyWith(
-                shape: WidgetStateProperty.all(
-                  RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
-                  ),
+                elevation: 5, // Add shadow depth
+                shadowColor: Colors.grey.withOpacity(0.5), // Shadow color
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
                 ),
               ),
             ),

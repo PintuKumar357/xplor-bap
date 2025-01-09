@@ -14,7 +14,9 @@ void main() async {
   // Check if token is saved
   final bool isLoggedIn = await AppUtils.checkToken();
   //const bool isLoggedIn = false;
-
+  print("ok.........................................");
+print(isLoggedIn);
+  print("ok.........................................");
   // Bootstrap the app
   bootstrap(() {
     return ScreenUtilInit(

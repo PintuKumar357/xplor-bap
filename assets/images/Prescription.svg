@@ -1,0 +1,11 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="white" xmlns="http://www.w3.org/2000/svg">
+    <!-- Prescription Bottle -->
+    <rect x="10" y="10" width="20" height="24" rx="4" ry="4" stroke="lightgreen" stroke-width="2"/>
+    <rect x="10" y="6" width="20" height="4" rx="2" ry="2" stroke="lightgreen" stroke-width="2" fill="white"/>
+
+    <!-- Label on the Prescription Bottle -->
+    <rect x="12" y="12" width="16" height="6" rx="1" ry="1" stroke="white" stroke-width="1" fill="white"/>
+
+    <!-- Prescription Symbol (Rx) -->
+    <text x="14" y="18" font-family="Arial" font-size="8" fill="black">Rx</text>
+</svg>

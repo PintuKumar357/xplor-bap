@@ -12,7 +12,6 @@ import '../../features/apply_course/presentation/screens/course_documents_screen
 import '../../features/apply_course/presentation/screens/thanks_for_applying_screen.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/health_documents.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/issue_prescription.dart';
-import '../../features/appointmet/presentation/pages/create_appointment/profile_varification.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/view_appointment.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/view_beneficiary.dart';
 import '../../features/appointmet/presentation/pages/doctor/doctor_detail_screen.dart';
@@ -64,11 +63,11 @@ class AppRoutes {
       // case Routes.HealthRecordsPage:
       //   return customPageRoute(HealthRecordsPage());
 
-
-
       case Routes.createAppointmentsPage:
         final args = settings.arguments as CreateAppointmentArgs?;
-        return customPageRoute(CreateAppointment(createAppointmentArgs: args,));
+        return customPageRoute(CreateAppointment(
+          createAppointmentArgs: args,
+        ));
 
       case Routes.AddBeneficiaryPage:
         return customPageRoute(AddBeneficiaryPage());
@@ -76,7 +75,6 @@ class AppRoutes {
       case Routes.IssuePrescriptionPage:
         final userData = settings.arguments as UserDataEntity?;
         return customPageRoute(IssuePrescriptionPage(userData: userData));
-
 
       case Routes.ViewBeneficiaryPage:
         return customPageRoute(ViewBeneficiaryPage());
@@ -88,12 +86,11 @@ class AppRoutes {
         // Return a material route for the main route, displaying HomeTabs widget.
         return customPageRoute(const WalkThroughPages());
       case Routes.HealthDocuments:
-      // Return a material route for the main route, displaying HomeTabs widget.
+        // Return a material route for the main route, displaying HomeTabs widget.
         return customPageRoute(HealthDocumentsPage());
 
-
       case Routes.walkThrough:
-      // Return a material route for the main route, displaying HomeTabs widget.
+        // Return a material route for the main route, displaying HomeTabs widget.
         return customPageRoute(const WalkThroughPages());
 
       case Routes.accessLocationPage:
@@ -117,7 +114,8 @@ class AppRoutes {
           const GenerateMpinScreen(),
         );
       case Routes.kyc:
-        return sl<SharedPreferencesHelper>().getBoolean(PrefConstKeys.appForBelem)
+        return sl<SharedPreferencesHelper>()
+                .getBoolean(PrefConstKeys.appForBelem)
             ? customPageRoute(const CompleteProfileViewBelem())
             : customPageRoute(const CompleteProfileView());
       case Routes.chooseRole:
@@ -130,7 +128,8 @@ class AppRoutes {
         // Return a material route for the main route, displaying HomeTabs widget.
         var transactionId = settings.arguments as String?;
         transactionId ??= "";
-        return customPageRoute(CourseDescriptionView(transactionId: transactionId));
+        return customPageRoute(
+            CourseDescriptionView(transactionId: transactionId));
       case Routes.startCoursePage:
         var courseUrl = settings.arguments as String?;
         courseUrl ??= "";
@@ -163,9 +162,9 @@ class AppRoutes {
         return customPageRoute(const MyOrdersView());
       case Routes.doctorDetail:
         final doctor = settings.arguments as Doctor;
-        return customPageRoute(DoctorDetailScreen(doctor: doctor,));
-
-
+        return customPageRoute(DoctorDetailScreen(
+          doctor: doctor,
+        ));
 
       case Routes.certificate:
         final arguments = settings.arguments as CertificateViewArguments;
