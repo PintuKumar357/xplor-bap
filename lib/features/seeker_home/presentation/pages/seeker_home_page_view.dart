@@ -533,10 +533,10 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                                             arguments: CreateAppointmentArgs(
                                                 state.userData!, record["osid"]));
                                       }
-                                      else{
-                                        Navigator.pushNamed(context,
-                                            Routes.login);
-                                      }
+                                      // else{
+                                      //   Navigator.pushNamed(context,
+                                      //       Routes.SeekerProfilePageView);
+                                      // }
                                       // Navigator.pushNamed(context,
                                       //     Routes.createAppointmentsPage, arguments:Doctor(name: selectedDoctor['doctorName'] ?? '', specialty: selectedDoctor['doctorSpecialization'] ??
                                       //         'Specialization', hospital: selectedDoctor['hospitalName'] ??
