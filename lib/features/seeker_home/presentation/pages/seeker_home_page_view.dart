@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
 import 'package:xplor/features/appointmet/presentation/pages/doctor/appointment_screen.dart';
+import 'package:xplor/utils/app_utils/app_utils.dart';
 import '../../../../config/routes/path_routing.dart';
 import '../../../../utils/common_top_header.dart';
 import '../../../appointmet/domain/entities/CreateAppointmentArgs.dart';
@@ -20,6 +21,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
   List<dynamic> _healthRecords = [];
   List<dynamic> _healthRecordsFilter = [];
   bool _isLoading = false;
+  bool   _isLoggedIn=false;
   String _errorMessage = '';
   String _searchQuery = "";
   String? _selectedSpecialist;
@@ -35,8 +37,9 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
     final url = Uri.parse(
         'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search');
 
-    setState(() {
+    setState(()  {
       _isLoading = true;
+      //const bool isLoggedIn = false;
     });
 
     try {
@@ -254,11 +257,11 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(91), // Adjust height as needed
         child: CommonTopHeader(
-            title: 'HOME',
-            isTitleOnly: false,
-            dividerColor: Colors.grey, // Use appropriate color
-            // onBackButtonPressed: () => Navigator
- onBackButtonPressed: () => Navigator.of(context).pop(),
+          title: 'HOME',
+          isTitleOnly: false,
+          dividerColor: Colors.grey, // Use appropriate color
+          // onBackButtonPressed: () => Navigator
+          onBackButtonPressed: () => Navigator.of(context).pop(),
         ),
       ),
 
@@ -402,7 +405,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                 style: const TextStyle(fontSize: 18, color: Colors.red),
               ), // Show error message with padding
             )
-                // The rest of your content when not loading and no error
+            // The rest of your content when not loading and no error
 
                 : Expanded(
               child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
@@ -519,13 +522,21 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                                   width: double.infinity,
                                   // Makes the button stretch across the card width
                                   child: ElevatedButton(
-                                    onPressed: () {
+                                    onPressed: () async {
                                       // Handle button press
-                                      var selectedDoctor = _healthRecords[index];
-                                      Navigator.pushNamed(context,
-                                          Routes.createAppointmentsPage,
-                                          arguments: CreateAppointmentArgs(
-                                              state.userData!, record["osid"]));
+                                      _isLoggedIn=  await AppUtils.checkToken() as bool;
+                                      
+                                      if(_isLoggedIn){
+                                        var selectedDoctor = _healthRecords[index];
+                                        Navigator.pushNamed(context,
+                                            Routes.createAppointmentsPage,
+                                            arguments: CreateAppointmentArgs(
+                                                state.userData!, record["osid"]));
+                                      }
+                                      else{
+                                        Navigator.pushNamed(context,
+                                            Routes.login);
+                                      }
                                       // Navigator.pushNamed(context,
                                       //     Routes.createAppointmentsPage, arguments:Doctor(name: selectedDoctor['doctorName'] ?? '', specialty: selectedDoctor['doctorSpecialization'] ??
                                       //         'Specialization', hospital: selectedDoctor['hospitalName'] ??
