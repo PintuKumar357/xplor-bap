@@ -1,10 +1,12 @@
+
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
 import '../../../../../utils/common_top_header.dart';
 import '../../../../on_boarding/domain/entities/user_data_entity.dart';
 import 'package:intl/intl.dart';
+
 class IssuePrescriptionPage extends StatefulWidget {
   final UserDataEntity? userData;
   const IssuePrescriptionPage({super.key, required this.userData});
@@ -15,19 +17,78 @@ class IssuePrescriptionPage extends StatefulWidget {
 
 class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
   bool _isLoading = false;
+  bool _hasError = false;
+  String _errorMessage = '';
   Map<String, dynamic> doctorData = {};
+  List<dynamic> hospitalData = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchHospitalRecords();
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    try {
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+        _errorMessage = '';
+      });
+
+      // Fetch both sets of data concurrently
+      await Future.wait([
+        _fetchHospitaloneRecords(),
+        _fetchHospitalRecords(),
+      ]);
+
+      setState(() {
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _errorMessage = 'Failed to load data. Please try again.';
+      });
+    }
   }
 
   Future<void> _fetchHospitalRecords() async {
-    setState(() {
-      _isLoading = true;
-    });
+    final url = Uri.parse(
+        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/PrescriptionCredential/search');
 
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'offset': 0,
+          'limit': 500,
+          'filters': {},
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        final List<dynamic> records = responseData['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            doctorData = {for (var item in records) item["osid"]: item};
+          });
+        }
+      } else {
+        throw Exception('Failed to load hospital records: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching hospital records: $e');
+      throw e;
+    }
+  }
+
+  Future<void> _fetchHospitaloneRecords() async {
     final url = Uri.parse(
         'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search');
 
@@ -47,35 +108,57 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         final List<dynamic> records = responseData['data'] ?? [];
-        print("ok.....................");
-        print(records);
-        print("ok.....................");
-        setState(() {
-          doctorData = {for (var item in records) item["osid"]: item};
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            hospitalData = records;
+          });
+        }
       } else {
-        print('Failed to load hospital records: ${response.statusCode}');
-        setState(() {
-          _isLoading = false;
-        });
+        throw Exception('Failed to load hospital records: ${response.statusCode}');
       }
     } catch (e) {
       print('Error fetching hospital records: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      throw e;
     }
   }
 
-  void _navigateToPramaPage(BuildContext context, String doctorName) {
+  void _navigateToPramaPage(BuildContext context, String doctorName, String osid, List<dynamic> drugPrescription) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PramaPage(doctorName: doctorName),
+        builder: (context) => PramaPage(
+          doctorName: doctorName,
+          osid: osid,
+          drugPrescription: drugPrescription,
+        ),
       ),
     );
   }
+
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            _errorMessage,
+            style: TextStyle(fontSize: 16, color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _initializeData,
+            child: Text('Retry'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF1581BF),
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,25 +174,19 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
       ),
       body: _isLoading
           ? Center(
-        child: CircularProgressIndicator(),
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1581BF)),
+        ),
       )
+          : _hasError
+          ? _buildErrorView()
           : doctorData.isNotEmpty
           ? ListView.builder(
         itemCount: doctorData.length,
         itemBuilder: (context, index) {
           final key = doctorData.keys.elementAt(index);
           final record = doctorData[key];
-
-          // Format the date
-          String formattedDate = '';
-          try {
-            if (record["osUpdatedAt"] != null) {
-              DateTime date = DateTime.parse(record["osUpdatedAt"]);
-              formattedDate = "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
-            }
-          } catch (e) {
-            formattedDate = 'No Date';
-          }
+          final doctorPhoto = hospitalData.isNotEmpty ? hospitalData[0]["doctorPhoto"] : null;
 
           return Card(
             color: Colors.white,
@@ -120,17 +197,15 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Row: Doctor Photo and Details
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Doctor Photo
                       Container(
                         width: 100,
                         height: 100,
-                        child: record["doctorPhoto"] != null && record["doctorPhoto"].isNotEmpty
+                        child: doctorPhoto != null && doctorPhoto.isNotEmpty
                             ? Image.network(
-                          record["doctorPhoto"],
+                          doctorPhoto,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Icon(
@@ -147,7 +222,6 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
                         ),
                       ),
                       SizedBox(width: 16),
-                      // Doctor Details
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,13 +234,6 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
                               ),
                             ),
                             SizedBox(height: 8),
-                            // Text(
-                            //   "Prescription Issued Date: $formattedDate",
-                            //   style: TextStyle(
-                            //     fontSize: 16,
-                            //     color: Colors.grey[700],
-                            //   ),
-                            // ),
                             Text(
                               "Prescription Issued Date: ${_formatDateTime(record["osUpdatedAt"])}",
                               style: TextStyle(
@@ -174,32 +241,34 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
                                 color: Colors.grey[700],
                               ),
                             ),
-
                           ],
                         ),
                       ),
                     ],
                   ),
-
-                  // Divider
                   Divider(
                     color: Colors.grey,
                     thickness: 1,
                   ),
-
                   SizedBox(
-                    width: double.infinity, // Makes the button take full width
+                    width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: record["status"] == "completed"
+                          ? null
+                          : () {
                         _navigateToPramaPage(
                           context,
                           record["doctorName"] ?? "No Name",
+                          record["osid"] ?? "No ID",
+                          record["drugPrescription"] ?? [],
                         );
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        side: BorderSide(color: Color(0xFF1581BF)),
-                        foregroundColor: Color(0xFF1581BF),
+                        backgroundColor: record["status"] == "completed" ? Colors.grey[300] : Colors.white,
+                        side: BorderSide(
+                          color: record["status"] == "completed" ? Colors.grey : Color(0xFF1581BF),
+                        ),
+                        foregroundColor: record["status"] == "completed" ? Colors.grey[600] : Color(0xFF1581BF),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -207,12 +276,10 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
                       child: Text("Order Medicine"),
                     ),
                   ),
-
                 ],
               ),
             ),
           );
-
         },
       )
           : Center(
@@ -223,32 +290,32 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
       ),
     );
   }
-  // Helper function to format the date
+
   String _formatDateTime(String? isoDate) {
     if (isoDate == null || isoDate.isEmpty) {
       return "No Data";
     }
 
     try {
-      // Parse the ISO date
       DateTime dateTime = DateTime.parse(isoDate);
-      // Format the date in dd-MM-yyyy hh:mm a format
       return DateFormat('dd-MM-yyyy hh:mm a').format(dateTime);
     } catch (e) {
-      // Handle parsing errors
       print("Error formatting date: $e");
       return "Invalid Date";
     }
   }
-
 }
-
-
-
 class PramaPage extends StatelessWidget {
   final String doctorName;
+  final String osid;
+  final List<dynamic> drugPrescription; // Add this field
 
-  PramaPage({required this.doctorName});
+  PramaPage({
+    Key? key,
+    required this.doctorName,
+    required this.osid,
+    required this.drugPrescription,
+  }) : super(key: key);
 
   // Mock data for pharmacies
   final List<Map<String, dynamic>> pramaData = [
@@ -260,48 +327,28 @@ class PramaPage extends StatelessWidget {
     },
     {
       "name": "Wellness Meds",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
+      "photo": "https://i.ibb.co/99CWsrr/d1.webp",
       "location": "Indiranagar, Bangalore",
       "distance": "3.0 km",
     },
     {
       "name": "Prime Pharmacy",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
+      "photo": "https://i.ibb.co/MRK57g0/d2.jpg",
       "location": "MG Road, Bangalore",
       "distance": "2.2 km",
     },
-    {
-      "name": "CurePoint Pharmacy",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
-      "location": "Whitefield, Bangalore",
-      "distance": "6.5 km",
-    },
-    {
-      "name": "MediCare Shop",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
-      "location": "Jayanagar, Bangalore",
-      "distance": "4.0 km",
-    },
-    {
-      "name": "PharmaPlus",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
-      "location": "Rajajinagar, Bangalore",
-      "distance": "5.8 km",
-    },
-    {
-      "name": "VitalCare Pharmacy",
-      "photo": "https://i.ibb.co/C2PbvV4/Top-10-Countries-to-Study-Pharmacy.jpg",
-      "location": "Electronic City, Bangalore",
-      "distance": "8.3 km",
-    },
-
   ];
 
-  void _navigateToOrderSummaryPage(BuildContext context, String pramaName) {
+  void _navigateToOrderSummaryPage(BuildContext context, String pramaName, String doctorName, String osid, List<dynamic> drugPrescription) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => OrderSummaryPage(pramaName: pramaName),
+        builder: (context) => OrderSummaryPage(
+          pramaName: pramaName,
+          doctorName: doctorName,
+          osid: osid,
+          drugPrescription: drugPrescription, // Pass the drugPrescription data
+        ),
       ),
     );
   }
@@ -313,13 +360,12 @@ class PramaPage extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(100),
         child: CommonTopHeader(
-          title: 'Prama List ',
+          title: 'Prama List',
           isTitleOnly: false,
           dividerColor: Colors.grey,
           onBackButtonPressed: () => Navigator.of(context).pop(),
         ),
       ),
-
       body: ListView.builder(
         itemCount: pramaData.length,
         itemBuilder: (context, index) {
@@ -391,7 +437,13 @@ class PramaPage extends StatelessWidget {
                     width: double.infinity, // Makes the button take the full width
                     child: ElevatedButton(
                       onPressed: () {
-                        _navigateToOrderSummaryPage(context, prama["name"]);
+                        _navigateToOrderSummaryPage(
+                          context,
+                          prama["name"],      // pramaName
+                          doctorName,         // doctorName
+                          osid,               // osid
+                          drugPrescription ?? [], // Pass drugPrescription (avoid null)
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -404,29 +456,10 @@ class PramaPage extends StatelessWidget {
                       ),
                       child: Text(
                         "Place Order",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,color:  Color(0xFF1581BF)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1581BF)),
                       ),
                     ),
                   ),
-
-                  // Full-width Place Order Button
-                  // ElevatedButton(
-                  //   onPressed: () {
-                  //     _navigateToOrderSummaryPage(context, prama["name"]);
-                  //   },
-                  //   style: ElevatedButton.styleFrom(
-                  //     backgroundColor: Color(0xFF1581BF),
-                  //     foregroundColor: Colors.white,
-                  //     padding: EdgeInsets.symmetric(vertical: 16),
-                  //     shape: RoundedRectangleBorder(
-                  //       borderRadius: BorderRadius.circular(8),
-                  //     ),
-                  //   ),
-                  //   child: Text(
-                  //     "Place Order",
-                  //     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  //   ),
-                  // ),
                 ],
               ),
             ),
@@ -436,151 +469,544 @@ class PramaPage extends StatelessWidget {
     );
   }
 }
-class OrderSummaryPage extends StatelessWidget {
+class OrderSummaryPage extends StatefulWidget {
   final String pramaName;
+  final String doctorName;
+  final String osid;
+  final List<dynamic> drugPrescription;
 
-  OrderSummaryPage({required this.pramaName});
+  OrderSummaryPage({
+    required this.pramaName,
+    required this.doctorName,
+    required this.osid,
+    required this.drugPrescription,
+  });
+
+  @override
+  _OrderSummaryPageState createState() => _OrderSummaryPageState();
+}
+
+class _OrderSummaryPageState extends State<OrderSummaryPage> {
+  bool isLoading = false;
+
+  Future<bool> endAppointmentHandler(String osid) async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final data = {
+      "osid": osid,
+      "status": "completed",
+    };
+    print("ok......................................");
+    print("Data being sent: $data");
+    print("ok......................................");
+    try {
+      final response = await http.put(
+        Uri.parse(
+            'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/PrescriptionCredential/$osid'),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(data),
+      );
+
+      setState(() {
+        isLoading = false;
+      });
+
+      if (response.statusCode == 200) {
+        print("Appointment ended successfully.");
+        return true;
+      } else {
+        print("Failed to place order. Status: ${response.statusCode}");
+        return false;
+      }
+    } catch (error) {
+      setState(() {
+        isLoading = false;
+      });
+      print("Error: $error");
+      return false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Example data for the order
-    double baseAmount = 1000.0; // Base amount for the order
-    double taxPercentage = 18.0; // Tax percentage
-    double discount = 150.0; // Fixed discount
-    double shippingFee = 50.0; // Shipping fee
+    // Base values
+    double baseAmount = 1000.0;
+    double taxPercentage = 18.0;
+    double discount = 150.0;
+    double shippingFee = 50.0;
 
-    // Calculations
+    // Tablet total amount calculation (including ₹10 or ₹20 additional per tablet)
+    double tabletTotalAmount = 0;
+    final random = Random();
+    for (var prescription in widget.drugPrescription) {
+      // Ensure both values are treated as doubles
+      double tabletAmount = (prescription['amount'] ?? 0).toDouble() + (10 + random.nextInt(11)).toDouble();
+      tabletTotalAmount += tabletAmount;
+      prescription['finalAmount'] = tabletAmount; // Store the updated amount for display
+    }
+    // Additional calculations
     double taxAmount = (baseAmount * taxPercentage) / 100;
     double totalAmount = baseAmount + taxAmount + shippingFee - discount;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(100),
-        child: CommonTopHeader(
-          title: 'Order Summary',
-          isTitleOnly: false,
-          dividerColor: Colors.grey,
-          onBackButtonPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
+    // Random discount for the bill
+    double deduction = (tabletTotalAmount * (5 + random.nextInt(15)) / 100).roundToDouble();
+    double finalAmount = tabletTotalAmount + totalAmount - deduction;
 
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Order Summary for $pramaName",
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.white,
+          appBar: PreferredSize(
+            preferredSize: Size.fromHeight(100),
+            child: CommonTopHeader(
+              title: 'Medical Bill Invoice',
+              isTitleOnly: false,
+              dividerColor: Colors.grey,
+              onBackButtonPressed: () => Navigator.of(context).pop(),
             ),
-            SizedBox(height: 16),
-            Text(
-              "Details:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Text(
-              "Prama Name: $pramaName",
-              style: TextStyle(fontSize: 16),
-            ),
-            SizedBox(height: 16),
-            Divider(),
-            Text(
-              "Cost Breakdown:",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Base Amount:", style: TextStyle(fontSize: 16)),
-                Text("₹${baseAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Tax (${taxPercentage.toStringAsFixed(0)}%):", style: TextStyle(fontSize: 16)),
-                Text("₹${taxAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Shipping Fee:", style: TextStyle(fontSize: 16)),
-                Text("₹${shippingFee.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
-              ],
-            ),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Discount:", style: TextStyle(fontSize: 16)),
-                Text("-₹${discount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16, color: Colors.green)),
-              ],
-            ),
-            Divider(),
-            SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Total Amount:",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  "Pharma Name: ${widget.pramaName}",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
+                SizedBox(height: 16),
+                Divider(),
                 Text(
-                  "₹${totalAmount.toStringAsFixed(2)}",
+                  "Doctor's Name: ${widget.doctorName}",
+                  style: TextStyle(fontSize: 18),
+                ),
+                SizedBox(height: 16),
+                Divider(),
+                Text(
+                  "Items Purchased:",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Divider(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    print("Order placed for $pramaName");
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text('Order Placed'),
-                        content: Text('Your order for $pramaName has been placed successfully!'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('OK'),
+                widget.drugPrescription.isNotEmpty
+                    ? ListView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  itemCount: widget.drugPrescription.length,
+                  itemBuilder: (context, index) {
+                    final prescription = widget.drugPrescription[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            prescription['tablet'] ?? 'N/A',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          Text(
+                            "₹${prescription['finalAmount']?.toStringAsFixed(2) ?? '0.00'}",
+                            style: TextStyle(fontSize: 16),
                           ),
                         ],
                       ),
                     );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF1581BF),
-                    foregroundColor: Colors.white,
+                )
+                    : Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    "No items purchased.",
+                    style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.grey),
                   ),
-                  child: Text("Place Order"),
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[300],
-                    foregroundColor: Colors.black,
-                  ),
-                  child: Text("Cancel Order"),
+                Divider(),
+                Text(
+                  "Cost Breakdown:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Base Amount:", style: TextStyle(fontSize: 16)),
+                    Text("₹${baseAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Tax (${taxPercentage.toStringAsFixed(0)}%):", style: TextStyle(fontSize: 16)),
+                    Text("₹${taxAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Shipping Fee:", style: TextStyle(fontSize: 16)),
+                    Text("₹${shippingFee.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Discount:", style: TextStyle(fontSize: 16)),
+                    Text("-₹${discount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16, color: Colors.green)),
+                  ],
+                ),
+                Divider(),
+                Text(
+                  "Additional Charges:",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Text("1. Pharmacy Service Charge: ₹50", style: TextStyle(fontSize: 16)),
+                Text("2. Packaging and Handling: ₹30", style: TextStyle(fontSize: 16)),
+                Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Tablet Total:",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "₹$tabletTotalAmount",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Discount Applied:",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "- ₹$deduction",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                  ],
+                ),
+                Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Final Payable Amount:",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "₹$finalAmount",
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+                    ),
+                  ],
+                ),
+                Divider(),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    ElevatedButton(
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                        print("Order placed for ${widget.pramaName}");
+                        final success = await endAppointmentHandler(widget.osid);
+                        if (success) {
+                          Navigator.pushReplacementNamed(context, '/seekerHome');
+                        } else {
+                          print("Failed to place order or end appointment");
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF1581BF),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text("Confirm Payment"),
+                    ),
+                    ElevatedButton(
+                      onPressed: isLoading
+                          ? null
+                          : () {
+                        Navigator.of(context).pop();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[300],
+                        foregroundColor: Colors.black,
+                      ),
+                      child: Text("Cancel"),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
+          ),
         ),
-      ),
+        if (isLoading)
+          Container(
+            color: Colors.black.withOpacity(0.5),
+            child: Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1581BF)),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
+
+
+// class OrderSummaryPage extends StatelessWidget {
+//   bool isLoading = false;
+//   final String pramaName;
+//   final String doctorName;
+//   final String osid;
+//   final List<dynamic> drugPrescription;
+//
+//   OrderSummaryPage({
+//     required this.pramaName,
+//     required this.doctorName,
+//     required this.osid,
+//     required this.drugPrescription,
+//   });
+//
+//   Future<bool> endAppointmentHandler(String osid) async {
+//     final data = {
+//       "osid": osid,
+//       "status": "completed",
+//     };
+//     print("ok......................................");
+//     print("Data being sent: $data");
+//     print("ok......................................");
+//     try {
+//       final response = await http.put(
+//         Uri.parse(
+//             'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/PrescriptionCredential/$osid'),
+//         headers: {"Content-Type": "application/json"},
+//         body: jsonEncode(data),
+//       );
+//
+//       if (response.statusCode == 200) {
+//         print("Appointment ended successfully.");
+//         return true;
+//       } else {
+//         print("Failed to place order. Status: ${response.statusCode}");
+//         return false;
+//       }
+//     } catch (error) {
+//       print("Error: $error");
+//       return false;
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     // Base values
+//     double baseAmount = 1000.0;
+//     double taxPercentage = 18.0;
+//     double discount = 150.0;
+//     double shippingFee = 50.0;
+//
+//     // Tablet total amount calculation (including ₹10 or ₹20 additional per tablet)
+//     double tabletTotalAmount = 0;
+//     final random = Random();
+//     for (var prescription in drugPrescription) {
+//       // Ensure both values are treated as doubles
+//       double tabletAmount = (prescription['amount'] ?? 0).toDouble() + (10 + random.nextInt(11)).toDouble();
+//       tabletTotalAmount += tabletAmount;
+//       prescription['finalAmount'] = tabletAmount; // Store the updated amount for display
+//     }
+//     // Additional calculations
+//     double taxAmount = (baseAmount * taxPercentage) / 100;
+//     double totalAmount = baseAmount + taxAmount + shippingFee - discount;
+//
+//     // Random discount for the bill
+//     double deduction = (tabletTotalAmount * (5 + random.nextInt(15)) / 100).roundToDouble();
+//     double finalAmount = tabletTotalAmount + totalAmount - deduction;
+//
+//     return Scaffold(
+//       backgroundColor: Colors.white,
+//       appBar: PreferredSize(
+//         preferredSize: Size.fromHeight(100),
+//         child: CommonTopHeader(
+//           title: 'Medical Bill Invoice',
+//           isTitleOnly: false,
+//           dividerColor: Colors.grey,
+//           onBackButtonPressed: () => Navigator.of(context).pop(),
+//         ),
+//       ),
+//       body: Padding(
+//         padding: const EdgeInsets.all(16.0),
+//         child: Column(
+//           crossAxisAlignment: CrossAxisAlignment.start,
+//           children: [
+//             Text(
+//               "Pharma Name: $pramaName",
+//               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+//             ),
+//             SizedBox(height: 16),
+//             Divider(),
+//             Text(
+//               "Doctor's Name: $doctorName",
+//               style: TextStyle(fontSize: 18),
+//             ),
+//             SizedBox(height: 16),
+//             Divider(),
+//             Text(
+//               "Items Purchased:",
+//               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//             ),
+//             drugPrescription.isNotEmpty
+//                 ? ListView.builder(
+//               shrinkWrap: true,
+//               physics: NeverScrollableScrollPhysics(),
+//               itemCount: drugPrescription.length,
+//               itemBuilder: (context, index) {
+//                 final prescription = drugPrescription[index];
+//                 return Padding(
+//                   padding: const EdgeInsets.symmetric(vertical: 0),
+//                   child: Row(
+//                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                     children: [
+//                       Text(
+//                         prescription['tablet'] ?? 'N/A',
+//                         style: TextStyle(fontSize: 16),
+//                       ),
+//                       Text(
+//                         "₹${prescription['finalAmount']?.toStringAsFixed(2) ?? '0.00'}",
+//                         style: TextStyle(fontSize: 16),
+//                       ),
+//                     ],
+//                   ),
+//                 );
+//               },
+//             )
+//                 : Padding(
+//               padding: const EdgeInsets.symmetric(vertical: 8.0),
+//               child: Text(
+//                 "No items purchased.",
+//                 style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: Colors.grey),
+//               ),
+//             ),
+//             Divider(),
+//             Text(
+//               "Cost Breakdown:",
+//               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//             ),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 Text("Base Amount:", style: TextStyle(fontSize: 16)),
+//                 Text("₹${baseAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+//               ],
+//             ),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 Text("Tax (${taxPercentage.toStringAsFixed(0)}%):", style: TextStyle(fontSize: 16)),
+//                 Text("₹${taxAmount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+//               ],
+//             ),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 Text("Shipping Fee:", style: TextStyle(fontSize: 16)),
+//                 Text("₹${shippingFee.toStringAsFixed(2)}", style: TextStyle(fontSize: 16)),
+//               ],
+//             ),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 Text("Discount:", style: TextStyle(fontSize: 16)),
+//                 Text("-₹${discount.toStringAsFixed(2)}", style: TextStyle(fontSize: 16, color: Colors.green)),
+//               ],
+//             ),
+//             Divider(),
+//             Text(
+//               "Additional Charges:",
+//               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//             ),
+//             Text("1. Pharmacy Service Charge: ₹50", style: TextStyle(fontSize: 16)),
+//             Text("2. Packaging and Handling: ₹30", style: TextStyle(fontSize: 16)),
+//             Divider(),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 Text(
+//                   "Tablet Total:",
+//                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                 ),
+//                 Text(
+//                   "₹$tabletTotalAmount",
+//                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                 ),
+//               ],
+//             ),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 Text(
+//                   "Discount Applied:",
+//                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+//                 ),
+//                 Text(
+//                   "- ₹$deduction",
+//                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
+//                 ),
+//               ],
+//             ),
+//             Divider(),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//               children: [
+//                 Text(
+//                   "Final Payable Amount:",
+//                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+//                 ),
+//                 Text(
+//                   "₹$finalAmount",
+//                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red),
+//                 ),
+//               ],
+//             ),
+//             Divider(),
+//             Row(
+//               mainAxisAlignment: MainAxisAlignment.spaceAround,
+//               children: [
+//                 ElevatedButton(
+//                   onPressed: () async {
+//                     print("Order placed for $pramaName");
+//                     final success = await endAppointmentHandler(osid);
+//                     if (success) {
+//                       Navigator.pushReplacementNamed(context, '/seekerHome');
+//                     } else {
+//                       print("Failed to place order or end appointment");
+//                     }
+//                   },
+//                   style: ElevatedButton.styleFrom(
+//                     backgroundColor: Color(0xFF1581BF),
+//                     foregroundColor: Colors.white,
+//                   ),
+//                   child: Text("Confirm Payment"),
+//                 ),
+//                 ElevatedButton(
+//                   onPressed: () {
+//                     Navigator.of(context).pop();
+//                   },
+//                   style: ElevatedButton.styleFrom(
+//                     backgroundColor: Colors.grey[300],
+//                     foregroundColor: Colors.black,
+//                   ),
+//                   child: Text("Cancel"),
+//                 ),
+//               ],
+//             ),
+//           ],
+//         ),
+//       ),
+//
+//
+//     );
+//   }
+// }
 
