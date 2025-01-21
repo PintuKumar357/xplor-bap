@@ -35,7 +35,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       _isLoading = true;
     });
     final url = Uri.parse(
-        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search'); // Replace with actual API endpoint
+        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/Hospital/search'); // Replace with actual API endpoint
 
     try {
       final response = await http.post(
@@ -72,7 +72,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       _isLoading = true;
     });
     final url = Uri.parse(
-        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Appointment/search'); // Replace with actual API endpoint
+        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/Appointment/search'); // Replace with actual API endpoint
 
     try {
       final response = await http.post(

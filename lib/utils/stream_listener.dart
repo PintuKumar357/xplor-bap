@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 
 class SSEService {
   final String url;
@@ -16,6 +17,10 @@ class SSEService {
     required this.onError,
   }) {
     _dio = Dio();
+    (_dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (client) {
+      client.badCertificateCallback = (cert, host, port) => true;
+    };
+
     _cancelToken = CancelToken();
   }
 

@@ -64,10 +64,8 @@ class AppRoutes {
       //   return customPageRoute(HealthRecordsPage());
 
       case Routes.createAppointmentsPage:
-        final args = settings.arguments as CreateAppointmentArgs?;
-        return customPageRoute(CreateAppointment(
-          createAppointmentArgs: args,
-        ));
+        final args = settings.arguments as Doctor;
+        return customPageRoute(CreateAppointment(doctor: args));
 
       case Routes.AddBeneficiaryPage:
         return customPageRoute(AddBeneficiaryPage());

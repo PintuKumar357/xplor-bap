@@ -21,18 +21,17 @@ class SeekerProfileState extends Equatable {
   final String? message;
 
   // Unique identifier to differentiate state instances, often used for UI updates.
-  final int? uniqueId;
+  final int uniqueId;
 
   // Constructor for SeekerProfileState with default and named parameters.
   const SeekerProfileState({
     this.profileState = ProfileState.initial, // Default state is initial.
     this.userData, // Optional user data.
     this.message, // Optional message.
-    this.uniqueId, // Optional unique identifier.
+    this.uniqueId = 0, // Default uniqueId, can be replaced with DateTime.now().millisecondsSinceEpoch if needed.
   });
 
   // Creates a copy of the current state with overridden values.
-  // This method allows for updating parts of the state without creating a new instance from scratch.
   SeekerProfileState copyWith({
     ProfileState? profileState,
     UserDataEntity? userData,
@@ -48,17 +47,14 @@ class SeekerProfileState extends Equatable {
   }
 
   // Equatable override to specify properties used for comparison.
-  // This helps in comparing state instances efficiently, especially in Bloc-based state management.
   @override
   List<Object?> get props => [profileState, userData, message, uniqueId];
 }
 
 /// Initial state of the profile, which is a subclass of SeekerProfileState.
-/// Sets a unique ID based on the current timestamp to distinguish this state.
 class ProfileInitialState extends SeekerProfileState {
   ProfileInitialState() : super(uniqueId: DateTime.now().millisecondsSinceEpoch);
 }
 
 /// State indicating that the user has logged out.
-/// This can be used to trigger UI changes or other actions related to user logout.
 class ProfileLogoutState extends SeekerProfileState {}

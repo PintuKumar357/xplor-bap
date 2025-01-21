@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:xplor/features/appointmet/presentation/pages/doctor/appointment_screen.dart';
 import 'package:xplor/utils/app_utils/app_utils.dart';
 import '../../../../config/routes/path_routing.dart';
@@ -35,7 +36,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
 
   Future<void> _fetchHealthRecords() async {
     final url = Uri.parse(
-        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search');
+        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/Hospital/search');
 
     setState(()  {
       _isLoading = true;
@@ -410,6 +411,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                 : Expanded(
               child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
                   builder: (context, state) {
+
                     return ListView.builder(
                       itemCount: _healthRecords.length,
                       itemBuilder: (context, index) {
@@ -450,7 +452,9 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                                             imageUrl: record['doctorPhoto'] ??
                                                 '',
                                             hospital: record['hospitalName'] ??
-                                                'Hospital Name'));
+                                                'Hospital Name',
+                                            id: record['id'] ??
+                                                'id'));
                                   },
                                   child: Row(
                                     children: [
@@ -524,14 +528,24 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                                   child: ElevatedButton(
                                     onPressed: () async {
                                       // Handle button press
+
                                       _isLoggedIn=  await AppUtils.checkToken() as bool;
-                                      
+
                                       if(_isLoggedIn){
                                         var selectedDoctor = _healthRecords[index];
+
                                         Navigator.pushNamed(context,
                                             Routes.createAppointmentsPage,
-                                            arguments: CreateAppointmentArgs(
-                                                state.userData!, record["osid"]));
+                                            arguments:   Doctor(
+                                                name: selectedDoctor['doctorName'] ?? '',
+                                                specialty: selectedDoctor['doctorSpecialization'] ??
+                                                    '',
+                                                imageUrl: selectedDoctor['doctorPhoto'] ??
+                                                    '',
+                                                hospital: selectedDoctor['hospitalName'] ??
+                                                    'Hospital Name',
+                                                id: selectedDoctor['id'] ??
+                                                    'id'));
                                       }
                                       else{
                                         Navigator.pushNamed(context,

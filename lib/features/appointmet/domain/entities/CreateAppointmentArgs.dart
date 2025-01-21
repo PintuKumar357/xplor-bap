@@ -1,9 +1,10 @@
 
+import 'package:xplor/features/appointmet/presentation/pages/doctor/doctor.dart';
 import 'package:xplor/features/on_boarding/domain/entities/user_data_entity.dart';
 
 class CreateAppointmentArgs {
-  UserDataEntity userDataEntity;
-  String doctorOsid;
+  Doctor doctor;
 
-  CreateAppointmentArgs(this.userDataEntity, this.doctorOsid);
+  CreateAppointmentArgs(this.doctor);
+  get doctorPhoto =>doctor.imageUrl;
 }

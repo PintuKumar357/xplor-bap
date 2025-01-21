@@ -277,7 +277,7 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
                                     SizedBox(width: 16), // Space between image and text
 
                                     // Main Text and Subtext (ABHA and Continue with ABHA)
-                                    Column(
+                                    const Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
@@ -322,7 +322,7 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
                                     SizedBox(width: 16), // Space between image and text
 
                                     // Main Text and Subtext (Digilocker and Continue with Digilocker)
-                                    Column(
+                                    const Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
@@ -345,10 +345,6 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
                       ],
                     ),
                   );
-
-
-
-
                 }
 
                 // Show CustomScrollView if user clicked on a card
