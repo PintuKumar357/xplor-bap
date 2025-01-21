@@ -80,7 +80,7 @@ class _SeekerProfilePageViewState extends State<SeekerProfilePageView> {
       ),
       ProfileCardOptionsEntity(
           title: "Prescription",
-          subTitle: "Order medicine",
+          subTitle: "Order Medicine",
           icon: Assets.images.prescription,
           route: Routes.IssuePrescriptionPage
       ),

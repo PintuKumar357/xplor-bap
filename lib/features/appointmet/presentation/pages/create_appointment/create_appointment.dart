@@ -2310,8 +2310,11 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         "walletId": userData?.wallet
       };
 
+      print("appointment Data");
+      print(appointmentData);
+      print(appointmentDate);
       final response = await http.post(
-        Uri.parse('https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Appointment'),
+        Uri.parse('https://2887-203-201-231-35.ngrok-free.app/registry/api/v1/Appointment'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(appointmentData),
       );

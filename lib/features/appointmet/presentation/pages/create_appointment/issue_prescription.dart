@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:xplor/features/apply_course/data/data_sources/apply_form_service.dart';
+import 'package:xplor/utils/extensions/string_to_string.dart';
 import '../../../../../utils/common_top_header.dart';
 import '../../../../on_boarding/domain/entities/user_data_entity.dart';
 import 'package:intl/intl.dart';
@@ -56,7 +58,7 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
 
   Future<void> _fetchHospitalRecords() async {
     final url = Uri.parse(
-        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/PrescriptionCredential/search');
+        'https://2887-203-201-231-35.ngrok-free.app/registry/api/v1/PrescriptionCredential/search');
 
     try {
       final response = await http.post(
@@ -90,7 +92,7 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
 
   Future<void> _fetchHospitaloneRecords() async {
     final url = Uri.parse(
-        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search');
+        'https://2887-203-201-231-35.ngrok-free.app/registry/api/v1/Hospital/search');
 
     try {
       final response = await http.post(
@@ -186,7 +188,12 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
         itemBuilder: (context, index) {
           final key = doctorData.keys.elementAt(index);
           final record = doctorData[key];
-          final doctorPhoto = hospitalData.isNotEmpty ? hospitalData[0]["doctorPhoto"] : null;
+
+          var doctor = hospitalData.firstWhere(
+                (doctor) => doctor['osid'] == record["doctorOsid"],
+            orElse: () => null,  // Return null if no match is found
+          );
+          final doctorPhoto = doctor["doctorPhoto"];
 
           return Card(
             color: Colors.white,
@@ -234,6 +241,13 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
                               ),
                             ),
                             SizedBox(height: 8),
+                            Text(
+                              "Beneficiary: ${record["patientName"].toString().capitalizeFirstLetter()}",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey[700],
+                              ),
+                            ),
                             Text(
                               "Prescription Issued Date: ${_formatDateTime(record["osUpdatedAt"])}",
                               style: TextStyle(

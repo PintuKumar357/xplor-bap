@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:xplor/features/apply_course/data/data_sources/apply_form_service.dart';
+import 'package:xplor/utils/extensions/string_to_string.dart';
 import '../../../../../utils/app_colors.dart';
 import '../../../../../utils/app_dimensions.dart';
 import '../../../../../utils/common_top_header.dart';
@@ -72,13 +74,14 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       _isLoading = true;
     });
     final url = Uri.parse(
-        'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Appointment/search'); // Replace with actual API endpoint
+        'https://2887-203-201-231-35.ngrok-free.app/registry/api/v1/Appointment/search'); // Replace with actual API endpoint
 
     try {
       final response = await http.post(
         url,
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: json.encode({
           'offset': 0,
@@ -89,13 +92,15 @@ class _ViewAppointmentState extends State<ViewAppointment> {
         }),
       );
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
+        var decodedBody = utf8.decode(response.bodyBytes);
+        final Map<String, dynamic> responseData = json.decode(decodedBody);
         final List<dynamic> records = responseData['data'] ?? [];
-        print(records);
+        print("records");
+        print(decodedBody);
         setState(() {
           dataList = records
               .map((record) => {
-            'name': record['patientName'] ?? 'N/A',
+            'name': record['patientName'].toString().capitalizeFirstLetter() ?? 'N/A',
             'appointmentDate': record['appointmentDate'] ?? 'N/A',
             'link': record['link'] ?? '#',
             'doctorOsid': record['doctorOsid'] ?? '#',
