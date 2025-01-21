@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xplor/features/apply_course/data/data_sources/apply_form_service.dart';
 import 'package:xplor/features/appointmet/presentation/pages/create_appointment/add_beneficiary.dart';
+import 'package:xplor/utils/extensions/string_to_string.dart';
 
 import '../../../../../utils/common_top_header.dart';
 import '../../../domain/entities/CreateAppointmentArgs.dart';
@@ -192,7 +194,7 @@ class _ViewBeneficiaryPageState extends State<ViewBeneficiaryPage> {
                 children: [
                   ListTile(
                     title: Text(
-                      '${beneficiary.name}',
+                      beneficiary.name.capitalizeFirstLetter(),
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, height: 1.5),
                     ),
                     subtitle: Column(
