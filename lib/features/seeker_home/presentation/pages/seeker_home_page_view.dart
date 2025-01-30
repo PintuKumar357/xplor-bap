@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:http/http.dart' as http;
+import 'package:xplor/core/api_constants.dart';
 
 import 'package:xplor/features/appointmet/presentation/pages/doctor/appointment_screen.dart';
+import 'package:xplor/features/on_boarding/domain/entities/user_data_entity.dart';
 import 'package:xplor/utils/app_utils/app_utils.dart';
 import '../../../../config/routes/path_routing.dart';
 import '../../../../utils/common_top_header.dart';
@@ -36,7 +38,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
 
   Future<void> _fetchHealthRecords() async {
     final url = Uri.parse(
-        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/Hospital/search');
+        '$domain/registry/api/v1/Hospital/search');
 
     setState(()  {
       _isLoading = true;

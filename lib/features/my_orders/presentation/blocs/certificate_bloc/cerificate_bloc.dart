@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:dio/io.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
@@ -36,6 +37,9 @@ class CertificateBloc extends Bloc<CertificateEvent, CertificateState> {
   Future<void> _downloadCertificate(
       StartDownload event, Emitter<CertificateState> emit) async {
     Dio dio = Dio();
+    (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate = (client) {
+      client.badCertificateCallback = (cert, host, port) => true;
+    };
     try {
       // Get the directory where the file will be saved
       var dir = await getExternalStorageDirectory();

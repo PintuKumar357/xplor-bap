@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:xplor/core/api_constants.dart';
 import '../../../../../utils/common_top_header.dart';
 import '../../../../on_boarding/domain/entities/user_data_entity.dart';
 import 'package:intl/intl.dart';
@@ -56,7 +57,7 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
 
   Future<void> _fetchHospitalRecords() async {
     final url = Uri.parse(
-        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/PrescriptionCredential/search');
+        '$domain/registry/api/v1/PrescriptionCredential/search');
 
     try {
       final response = await http.post(
@@ -90,7 +91,7 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
 
   Future<void> _fetchHospitaloneRecords() async {
     final url = Uri.parse(
-        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/Hospital/search');
+        '$domain/registry/api/v1/Hospital/search');
 
     try {
       final response = await http.post(
@@ -504,7 +505,7 @@ class _OrderSummaryPageState extends State<OrderSummaryPage> {
     try {
       final response = await http.put(
         Uri.parse(
-            'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/PrescriptionCredential/$osid'),
+            '$domain/registry/api/v1/PrescriptionCredential/$osid'),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(data),
       );

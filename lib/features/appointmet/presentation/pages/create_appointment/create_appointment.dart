@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:http/http.dart' as http;
+import 'package:xplor/const/local_storage/shared_preferences_helper.dart';
+
+import 'package:xplor/core/api_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xplor/features/appointmet/presentation/pages/doctor/doctor.dart';
+import 'package:xplor/features/multi_lang/domain/mappers/profile/profile_keys.dart';
 import 'package:xplor/features/on_boarding/domain/entities/user_data_entity.dart';
 import 'package:xplor/features/profile/presentation/bloc/seeker_profile_bloc/seeker_profile_bloc.dart';
 
@@ -74,7 +78,9 @@ class _CreateAppointmentState extends State<CreateAppointment> {
   @override
   void initState() {
     super.initState();
-    // _loadBeneficiaries();
+
+    // Trigger an event to load user data for the profile.
+    context.read<SeekerProfileBloc>().add(const ProfileUserDataEvent());
     _updateTimeSlots();
   }
 
@@ -96,17 +102,24 @@ class _CreateAppointmentState extends State<CreateAppointment> {
           _beneficiaries = [defaultBeneficiary] +
               (beneficiariesJson != null
                   ? beneficiariesJson
-                      .map((jsonStr) => Beneficiary.fromJson(jsonStr))
-                      .toList()
+                  .map((jsonStr) => Beneficiary.fromJson(jsonStr))
+                  .toList()
                   : []);
         });
       } else {
+        Beneficiary defaultBeneficiary = Beneficiary(
+          name: userData.kyc?.firstName ?? "Tejash",
+          relationship: "self",
+          age: 30,
+          abhaId: userData.kyc?.provider?.id ?? "default-abha-id",
+        );
         setState(() {
-          _beneficiaries = beneficiariesJson != null
+          _selectedBeneficiary = defaultBeneficiary;
+          _beneficiaries = [defaultBeneficiary]+( beneficiariesJson != null
               ? beneficiariesJson
-                  .map((jsonStr) => Beneficiary.fromJson(jsonStr))
-                  .toList()
-              : [];
+              .map((jsonStr) => Beneficiary.fromJson(jsonStr))
+              .toList()
+              : []);
         });
       }
     } catch (e) {
@@ -211,8 +224,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     }
   }
 
-  Future<void> _submitAppointment(
-      BuildContext context, UserDataEntity userData) async {
+  Future<void> _submitAppointment( UserDataEntity userData) async {
     if (_selectedBeneficiary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select a beneficiary')),
@@ -241,7 +253,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         "abhaId": _selectedBeneficiary?.abhaId ?? userData?.kyc?.provider.id,
         "patientName": _selectedBeneficiary?.name ?? userData?.kyc?.firstName,
         "link":
-            "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData?.kyc?.firstName}-TeleConsultation-${appointment}",
+        "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData?.kyc?.firstName}-TeleConsultation-${appointment}",
         "appointmentDate": appointmentDate,
         "mobile": userData?.phoneNumber,
         "email": userData?.kyc?.email,
@@ -253,7 +265,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
 
       final response = await http.post(
         Uri.parse(
-            'https://32f5-203-201-231-35.ngrok-free.app/registry/api/v1/Appointment'),
+            '${domain}/registry/api/v1/Appointment'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(appointmentData),
       );
@@ -343,82 +355,83 @@ class _CreateAppointmentState extends State<CreateAppointment> {
             ),
           ),
           padding: EdgeInsets.all(16.0),
-          child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
-              builder: (context, state) {
-            if (state.userData != null) {
-              _loadBeneficiaries(state.userData!!);
-            }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Select Beneficiary",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16.0),
-                if (_beneficiaries.isEmpty && defaultBeneficiary != null)
-                  ListTile(
-                    title: Text(defaultBeneficiary.name),
-                    subtitle: Text(defaultBeneficiary.relationship),
-                    leading: Radio<Beneficiary>(
-                      value: defaultBeneficiary,
-                      groupValue: _selectedBeneficiary,
-                      onChanged: (value) {
-                        setState(() => _selectedBeneficiary = value);
-                        Navigator.pop(context);
-                      },
-                    ),
-                    onTap: () {
-                      // Trigger the same behavior as the Radio button when ListTile is tapped
-                      setState(() {
-                        _selectedBeneficiary =
-                            defaultBeneficiary; // Select the value
-                      });
-                      Navigator.pop(context); // Close the dialog or popup
+          child:Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Select Beneficiary",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16.0),
+              if (_beneficiaries.isEmpty && defaultBeneficiary != null)
+                ListTile(
+                  title: Text(defaultBeneficiary.name),
+                  subtitle: Text(defaultBeneficiary.relationship),
+                  leading: Radio<Beneficiary>(
+                    value: defaultBeneficiary,
+                    groupValue: _selectedBeneficiary,
+                    onChanged: (value) {
+                      setState(() => _selectedBeneficiary = value);
+                      Navigator.pop(context);
                     },
-                  )
-                else
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _beneficiaries.length,
-                      itemBuilder: (context, index) {
-                        final beneficiary = _beneficiaries[index];
-
-                        return ListTile(
-                          title: Text(
-                            beneficiary.name.isNotEmpty
-                                ? '${beneficiary.name[0].toUpperCase()}${beneficiary.name.substring(1)}'
-                                : 'No Name', // Fallback if name is empty
-                          ),
-                          subtitle: Text(beneficiary.relationship),
-                          leading: Radio<Beneficiary>(
-                            value: beneficiary,
-                            groupValue: _selectedBeneficiary,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedBeneficiary =
-                                    value; // Update the selected beneficiary
-                              });
-                              Navigator.pop(
-                                  context); // Close the dialog or popup
-                            },
-                          ),
-                          onTap: () {
-                            // Trigger the same behavior as the Radio button when ListTile is tapped
+                  ),
+                  onTap: () {
+                    // Trigger the same behavior as the Radio button when ListTile is tapped
+                    setState(() {
+                      _selectedBeneficiary =
+                          defaultBeneficiary; // Select the value
+                    });
+                    Navigator.pop(context); // Close the dialog or popup
+                  },
+                )
+              else
+                Expanded(
+                  child:
+                  ListView.builder(
+                    itemCount: _beneficiaries.length,
+                    itemBuilder: (context, index) {
+                      final beneficiary = _beneficiaries[index];
+                      // _loadBeneficiaries(state.userData!);
+                      return ListTile(
+                        title: Text(
+                          beneficiary.name.isNotEmpty
+                              ? '${beneficiary.name[0].toUpperCase()}${beneficiary.name.substring(1)}'
+                              : 'No Name', // Fallback if name is empty
+                        ),
+                        subtitle: Text(beneficiary.relationship),
+                        leading: Radio<Beneficiary>(
+                          value: beneficiary,
+                          groupValue: _selectedBeneficiary,
+                          onChanged: (value) {
                             setState(() {
                               _selectedBeneficiary =
-                                  beneficiary; // Select the value when ListTile is tapped
+                                  value; // Update the selected beneficiary
                             });
-                            Navigator.pop(context); // Close the dialog or popup
+                            Navigator.pop(
+                                context); // Close the dialog or popup
                           },
-                        );
-                      },
-                    ),
+                        ),
+                        onTap: () {
+                          // Trigger the same behavior as the Radio button when ListTile is tapped
+                          setState(() {
+                            _selectedBeneficiary =
+                                beneficiary; // Select the value when ListTile is tapped
+                          });
+                          Navigator.pop(context); // Close the dialog or popup
+                        },
+                      );
+                    },
                   ),
-              ],
-            );
-          }),
+                ),
+            ],
+          ),
+        // BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
+        //       builder: (context, state) {
+
+                // return
+
+              // }),
         );
       },
     );
@@ -433,32 +446,32 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         slots.isEmpty
             ? Text("No slots available")
             : Wrap(
-                spacing: 8.0,
-                runSpacing: 8.0,
-                children: slots.map((String time) {
-                  bool isDisabled = disabledSlots.contains(time);
-                  return ChoiceChip(
-                    label: Text(
-                      time,
-                      style: TextStyle(
-                        color: isDisabled ? Colors.grey[600] : Colors.white,
-                      ),
-                    ),
-                    selected: selectedTimeSlot == time,
-                    onSelected: isDisabled
-                        ? null
-                        : (bool selected) {
-                            setState(() {
-                              selectedTimeSlot = selected ? time : '';
-                            });
-                          },
-                    selectedColor: Color(0xFF1581BF),
-                    backgroundColor:
-                        isDisabled ? Colors.grey[300] : Colors.blue,
-                    disabledColor: Colors.grey[300],
-                  );
-                }).toList(),
+          spacing: 8.0,
+          runSpacing: 8.0,
+          children: slots.map((String time) {
+            bool isDisabled = disabledSlots.contains(time);
+            return ChoiceChip(
+              label: Text(
+                time,
+                style: TextStyle(
+                  color: isDisabled ? Colors.grey[600] : Colors.white,
+                ),
               ),
+              selected: selectedTimeSlot == time,
+              onSelected: isDisabled
+                  ? null
+                  : (bool selected) {
+                setState(() {
+                  selectedTimeSlot = selected ? time : '';
+                });
+              },
+              selectedColor: Color(0xFF1581BF),
+              backgroundColor:
+              isDisabled ? Colors.grey[300] : Colors.blue,
+              disabledColor: Colors.grey[300],
+            );
+          }).toList(),
+        ),
       ],
     );
   }
@@ -479,230 +492,232 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         body: isLoading
             ? Center(child: CircularProgressIndicator()) // Show loader
             : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
-                    builder: (context, state) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 16.0),
-                      Center(
-                          child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10.0),
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: Image.network(
-                                  widget.doctor.imageUrl,
-                                  fit: BoxFit.fill,
-                                  loadingBuilder: (BuildContext context,
-                                      Widget child,
-                                      ImageChunkEvent? loadingProgress) {
-                                    if (loadingProgress == null) {
-                                      return child;
-                                    } else {
+            padding: const EdgeInsets.all(16.0),
+            child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
+                builder: (context, state) {
+                  if (state.profileState == ProfileState.done) {
+                    // Call _loadBeneficiaries if userData is not null
+                    if (state.userData != null) {
+                      _loadBeneficiaries(state.userData!);
+                    }
+
+                    // Render the view
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 16.0),
+                        Center(
+                            child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10.0),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: Image.network(
+                                    widget.doctor.imageUrl,
+                                    height: 200,
+                                    fit: BoxFit.fill,
+                                    loadingBuilder: (BuildContext context,
+                                        Widget child,
+                                        ImageChunkEvent? loadingProgress) {
+                                      if (loadingProgress == null) {
+                                        return child;
+                                      } else {
+                                        return Center(
+                                          child: CircularProgressIndicator(
+                                            value: loadingProgress
+                                                .expectedTotalBytes != null
+                                                ? loadingProgress
+                                                .cumulativeBytesLoaded /
+                                                (loadingProgress
+                                                    .expectedTotalBytes ??
+                                                    1)
+                                                : null,
+                                          ),
+                                        );
+                                      }
+                                    },
+                                    errorBuilder: (BuildContext context,
+                                        Object error, StackTrace? stackTrace) {
                                       return Center(
-                                        child: CircularProgressIndicator(
-                                          value: loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                      .cumulativeBytesLoaded /
-                                                  (loadingProgress
-                                                          .expectedTotalBytes ??
-                                                      1)
-                                              : null,
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  errorBuilder: (BuildContext context,
-                                      Object error, StackTrace? stackTrace) {
-                                    return Center(
-                                        child: Text('Failed to load image'));
-                                  },
-                                ),
-                              ))),
-                      SizedBox(height: 16.0),
-                      Card(
-                        color: Colors.white,
-                        elevation: 4,
-                        // Adds a shadow effect
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8), // Rounded corners
-                        ),
-                        margin: EdgeInsets.all(0),
-                        // Adds space around the card
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          // Padding inside the card
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "Doctor Name: ${widget.doctor.name}",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                          child: Text('Failed to load image'));
+                                    },
+                                  ),
+                                ))),
+                        SizedBox(height: 16.0),
+                        Container(
+                          width: double.infinity, // Makes the card fill the parent width
+                          child: Card(
+                            color: Colors.white,
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            margin: EdgeInsets.all(0),
+                            child: Padding(
+                              padding: const EdgeInsets.all(10.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Doctor Name: ${widget.doctor.name}",
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
+                                  Text(
+                                    "Specialty: ${widget.doctor.specialty}",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
+                                  Text(
+                                    "Hospital: ${widget.doctor.hospital}",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
                               ),
-                              SizedBox(height: 10),
-                              // Adds space between name and specialty
-                              Text(
-                                "Specialty: ${widget.doctor.specialty}",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                              SizedBox(height: 10),
-                              // Adds space between specialty and hospital
-                              Text(
-                                "Hospital: ${widget.doctor.hospital}",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.0),
-                      Card(
-                        color: Colors.white,
-                        elevation: 4,
-                        // Adds a shadow effect
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8), // Rounded corners
-                        ),
-                        margin: EdgeInsets.all(0),
-                        // Adds space around the card
-                        child: ListTile(
-                          title: Text("Select Date"),
-                          subtitle:
-                              Text("${selectedDate.toLocal()}".split(' ')[0]),
-                          trailing: Icon(Icons.calendar_today),
-                          onTap: () => _selectDate(context),
-                        ),
-                      ),
-
-                      SizedBox(height: 16.0),
-
-                      // Morning Slots
-                      Text("Select Morning Slot",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      _morningSlots.isNotEmpty
-                          ? Wrap(
-                              spacing: 8.0,
-                              children: _morningSlots.map((String time) {
-                                return ChoiceChip(
-                                  label: Text(time,
-                                      style: TextStyle(color: Colors.white)),
-                                  selected: selectedTimeSlot == time,
-                                  onSelected: disabledSlots.contains(time)
-                                      ? null
-                                      : (bool selected) {
-                                          setState(() {
-                                            selectedTimeSlot = time;
-                                          });
-                                        },
-                                  selectedColor: Colors.blue,
-                                  backgroundColor: Colors.blue,
-                                  disabledColor: Colors.grey[500],
-                                );
-                              }).toList(),
-                            )
-                          : Text("No morning slots available"),
-                      SizedBox(height: 16.0),
-
-                      // Evening Slots
-                      Text("Select Evening Slot",
-                          style: TextStyle(fontWeight: FontWeight.bold)),
-                      _eveningSlots.isNotEmpty
-                          ? Wrap(
-                              spacing: 8.0,
-                              children: _eveningSlots.map((String time) {
-                                return ChoiceChip(
-                                  label: Text(time,
-                                      style: TextStyle(color: Colors.white)),
-                                  selected: selectedTimeSlot == time,
-                                  onSelected: disabledSlots.contains(time)
-                                      ? null
-                                      : (bool selected) {
-                                          setState(() {
-                                            selectedTimeSlot = time;
-                                          });
-                                        },
-                                  selectedColor: Colors.blue,
-                                  backgroundColor: Colors.blue,
-                                  disabledColor: Colors.grey[500],
-                                );
-                              }).toList(),
-                            )
-                          : Text("No evening slots available"),
-                      SizedBox(height: 16.0),
-
-                      Text(
-                        "Select Beneficiary",
-                        style: TextStyle(
-                          fontSize: 14.0, // Adjust font size as needed
-                          fontWeight: FontWeight.bold, // Makes the text bold
-                        ),
-                      ),
-                      SizedBox(height: 2.0),
-                      // Select Beneficiary Button
-                      ElevatedButton(
-                        onPressed: () {
-                          if (state.userData != null)
-                            _showBeneficiariesPopup(state
-                                .userData!!); // Show beneficiary selection popup
-                        },
-                        child: Text(
-                          _selectedBeneficiary == null
-                              ? 'Select Beneficiary'
-                              : '${_selectedBeneficiary!.name[0].toUpperCase()}${_selectedBeneficiary!.name.substring(1)} (${_selectedBeneficiary!.relationship})',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          foregroundColor: Colors.blue,
-                          backgroundColor: Colors.white,
-                          minimumSize: Size(double.infinity, 50),
-                          elevation: 5,
-                          // Add shadow depth
-                          shadowColor: Colors.grey.withOpacity(0.5),
-                          // Shadow color
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 16.0),
-                      ElevatedButton(
-                        onPressed: () => {
-                          if (state.userData != null)
-                            _submitAppointment(context, state.userData!!)
-                        },
-                        child: Text('Book Appointment',
-                            style: TextStyle(
-                                color: Color(0xFF1581BF))), // Black text
-                        style: ElevatedButton.styleFrom(
-                          side: BorderSide(
-                              color: Color(0xFF1581BF),
-                              width: 2), // Blue border
-                          backgroundColor: Colors.white, // No background color
-                          minimumSize: Size(double.infinity, 50),
-                        ).copyWith(
-                          shape: WidgetStateProperty.all(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                              // No rounded corners
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  );
+                        SizedBox(height: 16.0),
+                        Card(
+                          color: Colors.white,
+                          elevation: 4,
+                          // Adds a shadow effect
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8), // Rounded corners
+                          ),
+                          margin: EdgeInsets.all(0),
+                          // Adds space around the card
+                          child: ListTile(
+                            title: Text("Select Date"),
+                            subtitle: Text("${selectedDate.toLocal()}".split(' ')[0]),
+                            trailing: Icon(Icons.calendar_today),
+                            onTap: () => _selectDate(context),
+                          ),
+                        ),
+                        SizedBox(height: 16.0),
+                        // Morning Slots
+                        Text("Select Morning Slot",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        _morningSlots.isNotEmpty
+                            ? Wrap(
+                          spacing: 8.0,
+                          children: _morningSlots.map((String time) {
+                            return ChoiceChip(
+                              label: Text(time,
+                                  style: TextStyle(color: Colors.white)),
+                              selected: selectedTimeSlot == time,
+                              onSelected: disabledSlots.contains(time)
+                                  ? null
+                                  : (bool selected) {
+                                setState(() {
+                                  selectedTimeSlot = time;
+                                });
+                              },
+                              selectedColor: Colors.blue,
+                              backgroundColor: Colors.blue,
+                              disabledColor: Colors.grey[500],
+                            );
+                          }).toList(),
+                        )
+                            : Text("No morning slots available"),
+                        SizedBox(height: 16.0),
+                        // Evening Slots
+                        Text("Select Evening Slot",
+                            style: TextStyle(fontWeight: FontWeight.bold)),
+                        _eveningSlots.isNotEmpty
+                            ? Wrap(
+                          spacing: 8.0,
+                          children: _eveningSlots.map((String time) {
+                            return ChoiceChip(
+                              label: Text(time,
+                                  style: TextStyle(color: Colors.white)),
+                              selected: selectedTimeSlot == time,
+                              onSelected: disabledSlots.contains(time)
+                                  ? null
+                                  : (bool selected) {
+                                setState(() {
+                                  selectedTimeSlot = time;
+                                });
+                              },
+                              selectedColor: Colors.blue,
+                              backgroundColor: Colors.blue,
+                              disabledColor: Colors.grey[500],
+                            );
+                          }).toList(),
+                        )
+                            : Text("No evening slots available"),
+                        SizedBox(height: 16.0),
+                        Text(
+                          "Select Beneficiary",
+                          style: TextStyle(
+                            fontSize: 14.0, // Adjust font size as needed
+                            fontWeight: FontWeight.bold, // Makes the text bold
+                          ),
+                        ),
+                        SizedBox(height: 2.0),
+                        // Select Beneficiary Button
+                        ElevatedButton(
+                          onPressed: () {
+                            if (state.userData != null)
+                              _showBeneficiariesPopup(state.userData!); // Show beneficiary selection popup
+                          },
+                          child: Text(
+                            _selectedBeneficiary == null
+                                ? 'Select Beneficiary'
+                                : '${_selectedBeneficiary!.name[0].toUpperCase()}${_selectedBeneficiary!.name.substring(1)} (${_selectedBeneficiary!.relationship})',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: Colors.blue,
+                            backgroundColor: Colors.white,
+                            minimumSize: Size(double.infinity, 50),
+                            elevation: 5,
+                            // Add shadow depth
+                            shadowColor: Colors.grey.withOpacity(0.5),
+                            // Shadow color
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 16.0),
+                        ElevatedButton(
+                          onPressed: () => {
+                            if (state.userData != null)
+                              _submitAppointment( state.userData!)
+                          },
+                          child: Text('Book Appointment',
+                              style: TextStyle(color: Color(0xFF1581BF))), // Black text
+                          style: ElevatedButton.styleFrom(
+                            side: BorderSide(
+                                color: Color(0xFF1581BF), width: 2), // Blue border
+                            backgroundColor: Colors.white, // No background color
+                            minimumSize: Size(double.infinity, 50),
+                          ).copyWith(
+                            shape: MaterialStateProperty.all(
+                              RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5),
+                                // No rounded corners
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    // Render a placeholder or loading view
+                    return Center(child: CircularProgressIndicator());
+                  }
                 })));
   }
+
+
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:xplor/core/api_constants.dart';
 import '../../../../../utils/app_colors.dart';
 import '../../../../../utils/app_dimensions.dart';
 import '../../../../../utils/common_top_header.dart';
@@ -35,7 +36,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       _isLoading = true;
     });
     final url = Uri.parse(
-        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/Hospital/search'); // Replace with actual API endpoint
+        '$domain/registry/api/v1/Hospital/search'); // Replace with actual API endpoint
 
     try {
       final response = await http.post(
@@ -72,7 +73,7 @@ class _ViewAppointmentState extends State<ViewAppointment> {
       _isLoading = true;
     });
     final url = Uri.parse(
-        'https://2887-203-201-231-35.ngrok-free.app//registry/api/v1/Appointment/search'); // Replace with actual API endpoint
+        '$domain/registry/api/v1/Appointment/search'); // Replace with actual API endpoint
 
     try {
       final response = await http.post(
