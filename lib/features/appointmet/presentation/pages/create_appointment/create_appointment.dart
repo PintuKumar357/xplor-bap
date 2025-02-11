@@ -78,55 +78,37 @@ class _CreateAppointmentState extends State<CreateAppointment> {
   @override
   void initState() {
     super.initState();
-
-    // Trigger an event to load user data for the profile.
     context.read<SeekerProfileBloc>().add(const ProfileUserDataEvent());
     _updateTimeSlots();
+
   }
+
 
   Future<void> _loadBeneficiaries(UserDataEntity userData) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       List<String>? beneficiariesJson = prefs.getStringList('beneficiaries');
 
-      // var userData = widget.createAppointmentArgs?.userDataEntity;
-      if (userData != null) {
-        Beneficiary defaultBeneficiary = Beneficiary(
-          name: userData.kyc?.firstName ?? "Default Name",
-          relationship: "self",
-          age: 30,
-          abhaId: userData.kyc?.provider?.id ?? "default-abha-id",
-        );
-        setState(() {
-          _selectedBeneficiary = defaultBeneficiary;
-          _beneficiaries = [defaultBeneficiary] +
-              (beneficiariesJson != null
-                  ? beneficiariesJson
-                  .map((jsonStr) => Beneficiary.fromJson(jsonStr))
-                  .toList()
-                  : []);
-        });
-      } else {
-        Beneficiary defaultBeneficiary = Beneficiary(
-          name: userData.kyc?.firstName ?? "Tejash",
-          relationship: "self",
-          age: 30,
-          abhaId: userData.kyc?.provider?.id ?? "default-abha-id",
-        );
-        setState(() {
-          _selectedBeneficiary = defaultBeneficiary;
-          _beneficiaries = [defaultBeneficiary]+( beneficiariesJson != null
-              ? beneficiariesJson
-              .map((jsonStr) => Beneficiary.fromJson(jsonStr))
-              .toList()
-              : []);
-        });
-      }
+      Beneficiary defaultBeneficiary = Beneficiary(
+        name: userData.kyc?.firstName ?? "Default Name",
+        relationship: "self",
+        age: 30,
+        abhaId: userData.kyc?.provider?.id ?? "default-abha-id",
+      );
+
+      setState(() {
+        _selectedBeneficiary ??= defaultBeneficiary;
+        _beneficiaries = [defaultBeneficiary] +
+            (beneficiariesJson != null
+                ? beneficiariesJson
+                .map((jsonStr) => Beneficiary.fromJson(jsonStr))
+                .toList()
+                : []);
+      });
     } catch (e) {
       debugPrint("Error loading beneficiaries: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Error loading beneficiaries. Please try again.')),
+        SnackBar(content: Text('Error loading beneficiaries. Please try again.')),
       );
     }
   }
@@ -323,18 +305,12 @@ class _CreateAppointmentState extends State<CreateAppointment> {
   }
 
   void _showBeneficiariesPopup(UserDataEntity userData) {
-    Beneficiary? defaultBeneficiary;
-    // var userData = widget.createAppointmentArgs?.userDataEntity;
-
-    if (_beneficiaries.isEmpty && userData != null) {
-      defaultBeneficiary = Beneficiary(
-        name: userData.kyc?.firstName ?? "Unknown Name",
-        relationship: "self",
-        age: 30,
-        abhaId: userData.kyc?.provider.id ?? "Unknown ABHA ID",
-      );
-      _selectedBeneficiary = defaultBeneficiary;
-    }
+    Beneficiary defaultBeneficiary = Beneficiary(
+      name: userData.kyc?.firstName ?? "Unknown Name",
+      relationship: "self",
+      age: 30,
+      abhaId: userData.kyc?.provider?.id ?? "Unknown ABHA ID",
+    );
 
     showModalBottomSheet(
       context: context,
@@ -364,7 +340,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16.0),
-              if (_beneficiaries.isEmpty && defaultBeneficiary != null)
+              if (_beneficiaries.isEmpty)
                 ListTile(
                   title: Text(defaultBeneficiary.name),
                   subtitle: Text(defaultBeneficiary.relationship),
@@ -377,12 +353,8 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                     },
                   ),
                   onTap: () {
-                    // Trigger the same behavior as the Radio button when ListTile is tapped
-                    setState(() {
-                      _selectedBeneficiary =
-                          defaultBeneficiary; // Select the value
-                    });
-                    Navigator.pop(context); // Close the dialog or popup
+                    setState(() => _selectedBeneficiary = defaultBeneficiary);
+                    Navigator.pop(context);
                   },
                 )
               else
@@ -392,7 +364,6 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                     itemCount: _beneficiaries.length,
                     itemBuilder: (context, index) {
                       final beneficiary = _beneficiaries[index];
-                      // _loadBeneficiaries(state.userData!);
                       return ListTile(
                         title: Text(
                           beneficiary.name.isNotEmpty
@@ -404,21 +375,13 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                           value: beneficiary,
                           groupValue: _selectedBeneficiary,
                           onChanged: (value) {
-                            setState(() {
-                              _selectedBeneficiary =
-                                  value; // Update the selected beneficiary
-                            });
-                            Navigator.pop(
-                                context); // Close the dialog or popup
+                            setState(() => _selectedBeneficiary = value);
+                            Navigator.pop(context);
                           },
                         ),
                         onTap: () {
-                          // Trigger the same behavior as the Radio button when ListTile is tapped
-                          setState(() {
-                            _selectedBeneficiary =
-                                beneficiary; // Select the value when ListTile is tapped
-                          });
-                          Navigator.pop(context); // Close the dialog or popup
+                          setState(() => _selectedBeneficiary = beneficiary);
+                          Navigator.pop(context);
                         },
                       );
                     },
@@ -426,53 +389,8 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                 ),
             ],
           ),
-        // BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
-        //       builder: (context, state) {
-
-                // return
-
-              // }),
         );
       },
-    );
-  }
-
-  Widget _buildTimeSlotSection(String title, List<String> slots) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
-        SizedBox(height: 8),
-        slots.isEmpty
-            ? Text("No slots available")
-            : Wrap(
-          spacing: 8.0,
-          runSpacing: 8.0,
-          children: slots.map((String time) {
-            bool isDisabled = disabledSlots.contains(time);
-            return ChoiceChip(
-              label: Text(
-                time,
-                style: TextStyle(
-                  color: isDisabled ? Colors.grey[600] : Colors.white,
-                ),
-              ),
-              selected: selectedTimeSlot == time,
-              onSelected: isDisabled
-                  ? null
-                  : (bool selected) {
-                setState(() {
-                  selectedTimeSlot = selected ? time : '';
-                });
-              },
-              selectedColor: Color(0xFF1581BF),
-              backgroundColor:
-              isDisabled ? Colors.grey[300] : Colors.blue,
-              disabledColor: Colors.grey[300],
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 
@@ -496,7 +414,6 @@ class _CreateAppointmentState extends State<CreateAppointment> {
             child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
                 builder: (context, state) {
                   if (state.profileState == ProfileState.done) {
-                    // Call _loadBeneficiaries if userData is not null
                     if (state.userData != null) {
                       _loadBeneficiaries(state.userData!);
                     }
