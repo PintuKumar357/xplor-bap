@@ -67,7 +67,11 @@ class _CreateAppointmentState extends State<CreateAppointment> {
       "mobile": widget.userData?.phoneNumber,
       "email": widget.userData?.kyc?.email,
       "prescription": _prescriptionController.text,
+      "doctorOsid": widget.doctor.id,
+      "status": "new",
+      "walletId": widget.userData?.wallet
     };
+
 
     try {
       // Send the data as a POST request

@@ -9,7 +9,7 @@ class ProfileKeys {
   static const logout = "Logout";
   static const ratingSeekers = " Rating (0 seekers)";
   static const myProfile = "My Profile";
-  static const myJob = "Job";
+  static const myJob = "Appointments";
   static const myCourses = "Courses";
   static const myAccount = "My Account";
   static const editProfile = "Edit Profile";

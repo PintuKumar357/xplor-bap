@@ -1,4 +1,6 @@
 
+import 'package:xplor/features/on_boarding/domain/entities/user_data_entity.dart';
+
 class Doctor {
   final String name;
   final String specialty;
@@ -13,4 +15,11 @@ class Doctor {
     required this.imageUrl,
     required this.id,
   });
+}
+
+class Appointment {
+  final Doctor doctor;
+  final UserDataEntity userDataEntity;
+
+  Appointment({required this.doctor, required this.userDataEntity});
 }

@@ -224,7 +224,7 @@ class _SeekerProfilePageViewState extends State<SeekerProfilePageView> {
             backgroundColor: AppColors.lightGreen.withOpacity(0.25),
           ),
         ),
-        AppDimensions.smallXL.w.horizontalSpace,
+        // AppDimensions.smallXL.w.horizontalSpace,
         Expanded(
           child: GestureDetector(
             onTap: () => Navigator.pushNamed(context, Routes.myOrders),

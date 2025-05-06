@@ -546,7 +546,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                                                     '',
                                                 hospital: selectedDoctor['hospitalName'] ??
                                                     'Hospital Name',
-                                                id: selectedDoctor['id'] ??
+                                                id: selectedDoctor['osid'] ??
                                                     'id'));
                                       }
                                       else{

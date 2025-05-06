@@ -187,7 +187,7 @@ class _IssuePrescriptionPageState extends State<IssuePrescriptionPage> {
         itemBuilder: (context, index) {
           final key = doctorData.keys.elementAt(index);
           final record = doctorData[key];
-          final doctorPhoto = hospitalData.isNotEmpty ? hospitalData[0]["doctorPhoto"] : null;
+          final doctorPhoto = hospitalData.isNotEmpty ? hospitalData[1]["doctorPhoto"] : null;
 
           return Card(
             color: Colors.white,

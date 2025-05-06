@@ -118,7 +118,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     TimeOfDay morningStart = TimeOfDay(hour: 9, minute: 0);
     TimeOfDay morningEnd = TimeOfDay(hour: 11, minute: 0);
     TimeOfDay eveningStart = TimeOfDay(hour: 11, minute: 0);
-    TimeOfDay eveningEnd = TimeOfDay(hour: 21, minute: 0);
+    TimeOfDay eveningEnd = TimeOfDay(hour: 24, minute: 0);
 
     setState(() {
       _morningSlots = [];
