@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:platform_device_id_v3/platform_device_id.dart';
+//import 'package:platform_device_id_v3/platform_device_id.dart';
+import 'package:platform_device_id_plus/platform_device_id.dart';
 import '../../../../core/connection/network_info.dart';
 import '../../../../utils/extensions/string_to_string.dart';
 import '../../../../core/exception_errors.dart';
@@ -158,8 +159,9 @@ class _LocationPageState extends State<LocationAccessPage> {
 
   void _getLocation() async {
     if (await sl<NetworkInfo>().isConnected!) {
-      await _determinePosition();
-      _goToNext();
+      //await _determinePosition();
+      //_goToNext();
+      _goToNewWelcome();
     } else {
       _showErrorMessage();
     }
@@ -172,4 +174,7 @@ class _LocationPageState extends State<LocationAccessPage> {
 
   void _goToNext() =>
       Navigator.pushReplacementNamed(context, Routes.selectLanguageScreen);
+
+  void _goToNewWelcome() =>
+      Navigator.pushReplacementNamed(context, Routes.newWelcomePage);
 }

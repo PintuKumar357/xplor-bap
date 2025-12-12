@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -16,6 +17,7 @@ import 'package:xplor/features/profile/presentation/bloc/seeker_profile_bloc/see
 import 'package:xplor/utils/app_colors.dart';
 import 'package:xplor/utils/common_top_header.dart';
 import '../../../domain/entities/CreateAppointmentArgs.dart';
+import '../../../../../config/routes/path_routing.dart';
 
 class Beneficiary {
   final String name;
@@ -80,9 +82,86 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     super.initState();
     context.read<SeekerProfileBloc>().add(const ProfileUserDataEvent());
     _updateTimeSlots();
-
   }
 
+  Future<void> triggerNotification({
+    required int minutesBefore,
+    String? webViewLink,
+    required UserDataEntity userData,
+  }) async {
+    try {
+      String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+      String selectedTime = convertTo24HourFormat(selectedTimeSlot);
+      String appointmentDate = "$formattedDate $selectedTime";
+      appointmentDate =
+          appointmentDate.replaceAll(RegExp(r'[\u202F\u00A0]'), ' ');
+
+      print("Debug - Appointment Date String: $appointmentDate");
+
+      // Create a fixed format date string
+      // String fixedDateString = "2025-06-25 02:20 PM";
+      // print("Debug - Input Date String: $fixedDateString");
+
+      // Parse using DateFormat without strict mode first
+      DateTime scheduledDate = DateFormat('yyyy-MM-dd hh:mm a')
+          .parse(appointmentDate); //appointmentDate
+
+      DateTime notificationTime =
+          scheduledDate.subtract(Duration(minutes: minutesBefore));
+
+      print("Debug - Appointment DateTime: $scheduledDate");
+      print("Debug - Notification DateTime: $notificationTime");
+
+      String localTimeZone =
+          await AwesomeNotifications().getLocalTimeZoneIdentifier();
+
+      print("Debug - Parsed DateTime: $scheduledDate");
+
+      // Generate dynamic appointment string for URL
+      String timeFmt = selectedTime.replaceAll(":", "-");
+      String appointment = "$formattedDate-$timeFmt";
+      String dynamicLink = webViewLink ??
+          "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData.kyc?.firstName}-TeleConsultation-${appointment}";
+
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+          channelKey: 'basic_channel',
+          title: minutesBefore == 15
+              ? 'Appointment Reminder'
+              : 'Appointment Starting Soon',
+          body: minutesBefore == 15
+              ? 'Your doctor appointment is in 15 minutes'
+              : 'Your doctor appointment is starting in 2 minutes',
+          payload: {
+            'appointmentDate': appointmentDate,
+            'doctorName': widget.doctor.name,
+            'navigate': 'viewAppointmentPage',
+            'link': minutesBefore == 2
+                ? dynamicLink
+                : '', // Pass the link or empty string
+            'minutesBefore': minutesBefore.toString(),
+          },
+        ),
+        schedule: NotificationCalendar(
+          year: notificationTime.year,
+          month: notificationTime.month,
+          day: notificationTime.day,
+          hour: notificationTime.hour,
+          minute: notificationTime.minute,
+          second: 0,
+          timeZone: localTimeZone,
+          preciseAlarm: true,
+          allowWhileIdle: true,
+        ),
+      );
+
+      print("Debug - Scheduled for: ${notificationTime.toString()}");
+    } catch (e, stackTrace) {
+      print("Debug - Notification Error: $e");
+      print("Debug - Stack trace: $stackTrace");
+    }
+  }
 
   Future<void> _loadBeneficiaries(UserDataEntity userData) async {
     try {
@@ -101,14 +180,15 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         _beneficiaries = [defaultBeneficiary] +
             (beneficiariesJson != null
                 ? beneficiariesJson
-                .map((jsonStr) => Beneficiary.fromJson(jsonStr))
-                .toList()
+                    .map((jsonStr) => Beneficiary.fromJson(jsonStr))
+                    .toList()
                 : []);
       });
     } catch (e) {
       debugPrint("Error loading beneficiaries: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading beneficiaries. Please try again.')),
+        SnackBar(
+            content: Text('Error loading beneficiaries. Please try again.')),
       );
     }
   }
@@ -173,7 +253,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
 
     while (currentSlot.isBefore(endDateTime)) {
       timeSlots.add(DateFormat.jm().format(currentSlot));
-      currentSlot = currentSlot.add(Duration(minutes: 30));
+      currentSlot = currentSlot.add(Duration(minutes: 20));
     }
 
     return timeSlots;
@@ -206,7 +286,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     }
   }
 
-  Future<void> _submitAppointment( UserDataEntity userData) async {
+  Future<void> _submitAppointment(UserDataEntity userData) async {
     if (_selectedBeneficiary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select a beneficiary')),
@@ -235,7 +315,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         "abhaId": _selectedBeneficiary?.abhaId ?? userData?.kyc?.provider.id,
         "patientName": _selectedBeneficiary?.name ?? userData?.kyc?.firstName,
         "link":
-        "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData?.kyc?.firstName}-TeleConsultation-${appointment}",
+            "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData?.kyc?.firstName}-TeleConsultation-${appointment}",
         "appointmentDate": appointmentDate,
         "mobile": userData?.phoneNumber,
         "email": userData?.kyc?.email,
@@ -246,8 +326,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
       };
 
       final response = await http.post(
-        Uri.parse(
-            '${domain}/registry/api/v1/Appointment'),
+        Uri.parse('${domain}/registry/api/v1/Appointment'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(appointmentData),
       );
@@ -331,7 +410,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
             ),
           ),
           padding: EdgeInsets.all(16.0),
-          child:Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -359,8 +438,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                 )
               else
                 Expanded(
-                  child:
-                  ListView.builder(
+                  child: ListView.builder(
                     itemCount: _beneficiaries.length,
                     itemBuilder: (context, index) {
                       final beneficiary = _beneficiaries[index];
@@ -410,9 +488,9 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         body: isLoading
             ? Center(child: CircularProgressIndicator()) // Show loader
             : SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
-                builder: (context, state) {
+                padding: const EdgeInsets.all(16.0),
+                child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
+                    builder: (context, state) {
                   if (state.profileState == ProfileState.done) {
                     if (state.userData != null) {
                       _loadBeneficiaries(state.userData!);
@@ -441,12 +519,13 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                                         return Center(
                                           child: CircularProgressIndicator(
                                             value: loadingProgress
-                                                .expectedTotalBytes != null
+                                                        .expectedTotalBytes !=
+                                                    null
                                                 ? loadingProgress
-                                                .cumulativeBytesLoaded /
-                                                (loadingProgress
-                                                    .expectedTotalBytes ??
-                                                    1)
+                                                        .cumulativeBytesLoaded /
+                                                    (loadingProgress
+                                                            .expectedTotalBytes ??
+                                                        1)
                                                 : null,
                                           ),
                                         );
@@ -461,7 +540,8 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                                 ))),
                         SizedBox(height: 16.0),
                         Container(
-                          width: double.infinity, // Makes the card fill the parent width
+                          width: double
+                              .infinity, // Makes the card fill the parent width
                           child: Card(
                             color: Colors.white,
                             elevation: 4,
@@ -509,13 +589,15 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                           elevation: 4,
                           // Adds a shadow effect
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8), // Rounded corners
+                            borderRadius:
+                                BorderRadius.circular(8), // Rounded corners
                           ),
                           margin: EdgeInsets.all(0),
                           // Adds space around the card
                           child: ListTile(
                             title: Text("Select Date"),
-                            subtitle: Text("${selectedDate.toLocal()}".split(' ')[0]),
+                            subtitle:
+                                Text("${selectedDate.toLocal()}".split(' ')[0]),
                             trailing: Icon(Icons.calendar_today),
                             onTap: () => _selectDate(context),
                           ),
@@ -526,25 +608,25 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         _morningSlots.isNotEmpty
                             ? Wrap(
-                          spacing: 8.0,
-                          children: _morningSlots.map((String time) {
-                            return ChoiceChip(
-                              label: Text(time,
-                                  style: TextStyle(color: Colors.white)),
-                              selected: selectedTimeSlot == time,
-                              onSelected: disabledSlots.contains(time)
-                                  ? null
-                                  : (bool selected) {
-                                setState(() {
-                                  selectedTimeSlot = time;
-                                });
-                              },
-                              selectedColor: Colors.blue,
-                              backgroundColor: Colors.blue,
-                              disabledColor: Colors.grey[500],
-                            );
-                          }).toList(),
-                        )
+                                spacing: 8.0,
+                                children: _morningSlots.map((String time) {
+                                  return ChoiceChip(
+                                    label: Text(time,
+                                        style: TextStyle(color: Colors.white)),
+                                    selected: selectedTimeSlot == time,
+                                    onSelected: disabledSlots.contains(time)
+                                        ? null
+                                        : (bool selected) {
+                                            setState(() {
+                                              selectedTimeSlot = time;
+                                            });
+                                          },
+                                    selectedColor: Colors.blue,
+                                    backgroundColor: Colors.blue,
+                                    disabledColor: Colors.grey[500],
+                                  );
+                                }).toList(),
+                              )
                             : Text("No morning slots available"),
                         SizedBox(height: 16.0),
                         // Evening Slots
@@ -552,25 +634,25 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         _eveningSlots.isNotEmpty
                             ? Wrap(
-                          spacing: 8.0,
-                          children: _eveningSlots.map((String time) {
-                            return ChoiceChip(
-                              label: Text(time,
-                                  style: TextStyle(color: Colors.white)),
-                              selected: selectedTimeSlot == time,
-                              onSelected: disabledSlots.contains(time)
-                                  ? null
-                                  : (bool selected) {
-                                setState(() {
-                                  selectedTimeSlot = time;
-                                });
-                              },
-                              selectedColor: Colors.blue,
-                              backgroundColor: Colors.blue,
-                              disabledColor: Colors.grey[500],
-                            );
-                          }).toList(),
-                        )
+                                spacing: 8.0,
+                                children: _eveningSlots.map((String time) {
+                                  return ChoiceChip(
+                                    label: Text(time,
+                                        style: TextStyle(color: Colors.white)),
+                                    selected: selectedTimeSlot == time,
+                                    onSelected: disabledSlots.contains(time)
+                                        ? null
+                                        : (bool selected) {
+                                            setState(() {
+                                              selectedTimeSlot = time;
+                                            });
+                                          },
+                                    selectedColor: Colors.blue,
+                                    backgroundColor: Colors.blue,
+                                    disabledColor: Colors.grey[500],
+                                  );
+                                }).toList(),
+                              )
                             : Text("No evening slots available"),
                         SizedBox(height: 16.0),
                         Text(
@@ -585,7 +667,8 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                         ElevatedButton(
                           onPressed: () {
                             if (state.userData != null)
-                              _showBeneficiariesPopup(state.userData!); // Show beneficiary selection popup
+                              _showBeneficiariesPopup(state
+                                  .userData!); // Show beneficiary selection popup
                           },
                           child: Text(
                             _selectedBeneficiary == null
@@ -607,16 +690,30 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                         ),
                         SizedBox(height: 16.0),
                         ElevatedButton(
-                          onPressed: () => {
-                            if (state.userData != null)
-                              _submitAppointment( state.userData!)
+                          onPressed: () async {
+                            if (state.userData != null) {
+                              _submitAppointment(state.userData!);
+                              await triggerNotification(
+                                minutesBefore: 15,
+                                webViewLink: null,
+                                userData: state.userData!,
+                              );
+                              await triggerNotification(
+                                minutesBefore: 2,
+                                webViewLink: null,
+                                userData: state.userData!,
+                              );
+                            }
                           },
                           child: Text('Book Appointment',
-                              style: TextStyle(color: Color(0xFF1581BF))), // Black text
+                              style: TextStyle(
+                                  color: Color(0xFF1581BF))), // Black text
                           style: ElevatedButton.styleFrom(
                             side: BorderSide(
-                                color: Color(0xFF1581BF), width: 2), // Blue border
-                            backgroundColor: Colors.white, // No background color
+                                color: Color(0xFF1581BF),
+                                width: 2), // Blue border
+                            backgroundColor:
+                                Colors.white, // No background color
                             minimumSize: Size(double.infinity, 50),
                           ).copyWith(
                             shape: MaterialStateProperty.all(
@@ -635,6 +732,4 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                   }
                 })));
   }
-
-
 }

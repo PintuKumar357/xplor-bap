@@ -90,6 +90,7 @@ class $AssetsImagesGen {
   String get benificary => 'assets/images/group-people-svgrepo-com.svg';
   AssetGenImage get benificaryimage =>
       const AssetGenImage('assets/images/group-people-svgrepo-com.png');
+
   /// File path: assets/images/edit_profile.svg
   String get editProfile => 'assets/images/edit_profile.svg';
 
@@ -107,7 +108,6 @@ class $AssetsImagesGen {
 
   /// File path: assets/images/ic_add_doc.svg
   String get icAddDoc => 'assets/images/ic_add_doc.svg';
-
 
   /// File path: assets/images/ic_avtar_female.svg
   String get icAvtarFemale => 'assets/images/ic_avtar_male.svg';
@@ -285,6 +285,7 @@ class $AssetsImagesGen {
   /// File path: assets/images/user.svg
   String get user => 'assets/images/user.svg';
   String get prescription => 'assets/images/Prescription.svg';
+
   /// File path: assets/images/verify_otp_screen_logo.svg
   String get verifyOtpScreenLogo => 'assets/images/verify_otp_screen_logo.svg';
 
@@ -298,14 +299,18 @@ class $AssetsImagesGen {
   String get welcomePage => 'assets/images/welcome_page.svg';
 
   String get records => 'assets/images/record.svg';
+
   /// File path: assets/images/white_right_arrow.svg
   String get whiteRightArrow => 'assets/images/white_right_arrow.svg';
 
+  AssetGenImage get newWelcomeImage =>
+      const AssetGenImage('assets/images/overlay.png');
+
   /// List of all assets
   List<dynamic> get values => [
-    records,
-    benificaryimage,
-    benificary,
+        records,
+        benificaryimage,
+        benificary,
         accessLocation,
         accountPrivacy,
         add,
@@ -316,7 +321,7 @@ class $AssetsImagesGen {
         claimedAmount,
         coins,
         consent,
-    prescription,
+        prescription,
         courseTutorIcon,
         cross,
         dashboardWave,
@@ -395,7 +400,8 @@ class $AssetsImagesGen {
         walletSelected,
         walletUnselected,
         welcomePage,
-        whiteRightArrow
+        whiteRightArrow,
+        newWelcomeImage
       ];
 }
 

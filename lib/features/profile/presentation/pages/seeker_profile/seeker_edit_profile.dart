@@ -39,11 +39,13 @@ class _SeekerEditProfileState extends State<SeekerEditProfile> {
     super.initState();
 
     // Initialize the text controllers with user data.
-    nameController.text = '${widget.userData?.kyc?.firstName} ${widget.userData?.kyc?.lastName}';
+    nameController.text =
+        '${widget.userData?.kyc?.firstName} ${widget.userData?.kyc?.lastName}';
     emailController.text = '${widget.userData?.kyc?.email}';
     addressController.text = _formatAddress(widget.userData?.kyc?.address);
     dobController.text = '${widget.userData?.kyc?.dob}';
-    mobileNumberController.text = '${widget.userData?.phoneNumber}'.replaceAll('${widget.userData?.countryCode}', "");
+    mobileNumberController.text = '${widget.userData?.phoneNumber}'
+        .replaceAll('${widget.userData?.countryCode}', "");
 
     // Set gender based on the user data.
     String gender = widget.userData?.kyc?.gender == 'NA'
@@ -152,7 +154,7 @@ class _SeekerEditProfileState extends State<SeekerEditProfile> {
 
   /// Formats the address from a JSON string to a human-readable format.
   String _formatAddress(String? address) {
-    if (address == null) {
+    if (address == null || address == '""') {
       return "";
     }
 

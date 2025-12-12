@@ -18,8 +18,6 @@ class Routes {
 
   static const String createAppointmentsPage = "/createAppointments";
 
-
-
   /// Represents the main or home route, likely the initial route when the app starts.
   static const String login = "/login";
 
@@ -59,7 +57,6 @@ class Routes {
   /// Route for the Seeker Home Screen
   static const String seekerHome = "/seekerHome";
 
-
   static const String startCoursePage = "/startCoursePage";
 
   /// Route for the Course Description
@@ -90,4 +87,22 @@ class Routes {
   static const String certificate = "/certificate";
 
   static const String payment = "/payment";
+
+  static const String newWelcomePage = "/newWelcomePage";
+
+  static const String firstWalkThroughPage = "/firstWalkThroughPage";
+
+  static const String secondWalkThroughPage = "/secondWalkThroughPage";
+
+  static const String thirdWalkThroughPage = "/thirdWalkThroughPage";
+
+  static const String chooseLangPage = "/chooseLangPage";
+
+  static const String yourFocusPage = "/yourFocusPage";
+
+  static const String categoryPage = "/CategoryPage";
+
+  static const String basicInformationPage = "/BasicInformationPage";
+
+  static const String homePage = "/HomePage";
 }
