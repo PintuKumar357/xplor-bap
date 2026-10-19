@@ -22,6 +22,8 @@ class SeekerProfileState extends Equatable {
 
   // Unique identifier to differentiate state instances, often used for UI updates.
   final int uniqueId;
+  final ProfileActivityCounts activityCounts;
+  final bool isCountsLoading;
 
   // Constructor for SeekerProfileState with default and named parameters.
   const SeekerProfileState({
@@ -29,6 +31,8 @@ class SeekerProfileState extends Equatable {
     this.userData, // Optional user data.
     this.message, // Optional message.
     this.uniqueId = 0, // Default uniqueId, can be replaced with DateTime.now().millisecondsSinceEpoch if needed.
+    this.activityCounts = const ProfileActivityCounts(),
+    this.isCountsLoading = false,
   });
 
   // Creates a copy of the current state with overridden values.
@@ -37,18 +41,25 @@ class SeekerProfileState extends Equatable {
     UserDataEntity? userData,
     String? message,
     int? uniqueId,
+    ProfileActivityCounts? activityCounts,
+    bool? isCountsLoading,
   }) {
     return SeekerProfileState(
       profileState: profileState ?? this.profileState,
       userData: userData ?? this.userData,
       message: message ?? this.message,
       uniqueId: uniqueId ?? this.uniqueId,
+      activityCounts: activityCounts ?? this.activityCounts,
+      isCountsLoading: isCountsLoading ?? this.isCountsLoading,
     );
   }
 
   // Equatable override to specify properties used for comparison.
   @override
-  List<Object?> get props => [profileState, userData, message, uniqueId];
+  List<Object?> get props => [
+        profileState, userData, message, uniqueId,
+        activityCounts, isCountsLoading,
+      ];
 }
 
 /// Initial state of the profile, which is a subclass of SeekerProfileState.

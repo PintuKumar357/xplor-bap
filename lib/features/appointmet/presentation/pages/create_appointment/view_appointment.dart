@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:xplor/core/api_constants.dart';
 import '../../../../../utils/app_colors.dart';
 import '../../../../../utils/app_dimensions.dart';
 import '../../../../../utils/common_top_header.dart';
 import '../../../../../utils/widgets/app_background_widget.dart';
 import '../../../../on_boarding/domain/entities/user_data_entity.dart';
+import '../../../../seeker_home/presentation/widgets/doctor_photo.dart';
 import 'package:intl/intl.dart';
 
 class ViewAppointment extends StatefulWidget {
@@ -164,28 +167,11 @@ class _ViewAppointmentState extends State<ViewAppointment> {
                                         children: [
                                           Row(
                                             children: [
-                                              doctor == null
-                                                  ? Container(
-                                                      width: 70,
-                                                      height: 70,
-                                                      color: Colors.grey,
-                                                      child: Icon(Icons.person),
-                                                    )
-                                                  : Container(
-                                                      width: 70,
-                                                      height: 70,
-                                                      decoration: BoxDecoration(
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(5),
-                                                        image: DecorationImage(
-                                                          image: NetworkImage(
-                                                              doctor['doctorPhoto'] ??
-                                                                  ''),
-                                                          fit: BoxFit.fill,
-                                                        ),
-                                                      ),
-                                                    ),
+                                              DoctorPhoto(
+                                                imageUrl:
+                                                    doctor?['doctorPhoto'],
+                                                doctorId: record['doctorOsid'],
+                                              ),
                                               SizedBox(width: 16),
                                               Expanded(
                                                 child: Column(
@@ -362,6 +348,15 @@ class _ViewAppointmentState extends State<ViewAppointment> {
   }
 }
 
+bool isTrustedConsultationUrl(String? url) {
+  final uri = Uri.tryParse(url ?? '');
+  return uri != null &&
+      uri.scheme == 'https' &&
+      uri.host == '8x8.vc' &&
+      uri.port == 443 &&
+      uri.userInfo.isEmpty;
+}
+
 class WebViewPage extends StatefulWidget {
   final String url;
 
@@ -373,38 +368,143 @@ class WebViewPage extends StatefulWidget {
 
 class _WebViewPageState extends State<WebViewPage> {
   late WebViewController _controller;
+  Future<void> _permissionQueue = Future<void>.value();
+  String? _loadError;
 
   @override
   void initState() {
     super.initState();
 
-    print("WebView URL: ${widget.url}");
-
-    _controller = WebViewController()
+    _controller = WebViewController(
+      onPermissionRequest: (request) {
+        _permissionQueue = _permissionQueue.then(
+          (_) => _handleMediaPermission(request),
+        );
+      },
+    )
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (String url) {
-            print("Loading: $url");
-          },
-          onPageFinished: (String url) {
-            print("Finished loading: $url");
+          onNavigationRequest: (request) {
+            return request.isMainFrame && !isTrustedConsultationUrl(request.url)
+                ? NavigationDecision.prevent
+                : NavigationDecision.navigate;
           },
           onWebResourceError: (WebResourceError error) {
-            print("Error: ${error.description}");
+            if (error.isForMainFrame == true && mounted) {
+              setState(() {
+                _loadError =
+                    'Unable to load the consultation. Please try again.';
+              });
+            }
           },
         ),
-      )
-      ..loadRequest(Uri.parse(widget.url));
+      );
+    _loadConsultation();
+  }
+
+  Future<void> _loadConsultation() async {
+    if (!isTrustedConsultationUrl(widget.url)) {
+      setState(() => _loadError = 'This consultation link is not supported.');
+      return;
+    }
+    setState(() => _loadError = null);
+    try {
+      final platformController = _controller.platform;
+      if (platformController is AndroidWebViewController) {
+        await platformController.setMediaPlaybackRequiresUserGesture(false);
+      }
+      if (!mounted) return;
+      await _controller.loadRequest(Uri.parse(widget.url));
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _loadError = 'Unable to load the consultation. Please try again.';
+        });
+      }
+    }
+  }
+
+  Future<void> _handleMediaPermission(WebViewPermissionRequest request) async {
+    try {
+      final pageUrl = await _controller.currentUrl();
+      if (!mounted ||
+          !isTrustedConsultationUrl(pageUrl) ||
+          request.types.isEmpty ||
+          request.types.any((type) =>
+              type != WebViewPermissionResourceType.camera &&
+              type != WebViewPermissionResourceType.microphone)) {
+        await request.deny();
+        return;
+      }
+
+      final permissions = [
+        if (request.types.contains(WebViewPermissionResourceType.camera))
+          Permission.camera,
+        if (request.types.contains(WebViewPermissionResourceType.microphone))
+          Permission.microphone,
+      ];
+      final statuses = await permissions.request();
+      if (!mounted || await _controller.currentUrl() != pageUrl) {
+        await request.deny();
+        return;
+      }
+      if (permissions
+          .every((permission) => statuses[permission]?.isGranted == true)) {
+        await request.grant();
+      } else {
+        await request.deny();
+        _showPermissionError();
+      }
+    } catch (_) {
+      try {
+        await request.deny();
+      } catch (_) {}
+      _showPermissionError();
+    }
+  }
+
+  void _showPermissionError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: const Text('Camera or microphone access was denied.'),
+      action: SnackBarAction(
+        label: 'Settings',
+        onPressed: () => openAppSettings(),
+      ),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('WebView'),
+        title: const Text('Consultation'),
       ),
-      body: WebViewWidget(controller: _controller),
+      body: _loadError != null
+          ? Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_loadError!, textAlign: TextAlign.center),
+                  if (isTrustedConsultationUrl(widget.url))
+                    TextButton(
+                      onPressed: _loadConsultation,
+                      child: const Text('Retry'),
+                    ),
+                ],
+              ),
+            )
+          : WebViewWidget.fromPlatformCreationParams(
+              params: WebViewPlatform.instance is AndroidWebViewPlatform
+                  ? AndroidWebViewWidgetCreationParams(
+                      controller: _controller.platform,
+                      displayWithHybridComposition: true,
+                    )
+                  : PlatformWebViewWidgetCreationParams(
+                      controller: _controller.platform,
+                    ),
+            ),
     );
   }
 }

@@ -3,25 +3,26 @@
 
 //Staging URl
 // const String domain = "https://vertically-wealthy-sheepdog.ngrok-free.app/";
-const String domain = "https://xplorphr.dpgongcp.com/";
+// const String domain = "https://xplorphr.dpgongcp.com/";
+const String domain = "https://xplor-phr-core.dpxdemo.com";
 //Staging URl
 //const String domain = "https://6h4kfp6q-8000.inc1.devtunnels.ms/";
 
-const String applyFormSubmit = "${domain}submitApplication";
+const String applyFormSubmit = "$domain/submitApplication";
 
-const String baseUrl = "${domain}api/v1/";
+const String baseUrl = "$domain/api/v1/";
 
 ///payment method navigation url
 
 const String successNavigation =
-    "${domain}api/v1/payment/verify-payment?razorpay_payment_id=";
+    "$domain/api/v1/payment/verify-payment?razorpay_payment_id=";
 const String failedNavigation = "https://api.razorpay.com/v1/payments/";
 
-const String eAuthWebHook = "${domain}kycForm";
-const String eAuthDigilockerWebHook = "${domain}v1/e-auth/callback?code=";
+const String eAuthWebHook = "$domain/kycForm";
+const String eAuthDigilockerWebHook = "$domain/v1/e-auth/callback?code=";
 const String signInWebHook =
     "https://digilocker.meripehchaan.gov.in/signin/oauth_partner";
-const String eAuthWebHookError = "${domain}v1/e-auth/callback?error=";
+const String eAuthWebHookError = "$domain/v1/e-auth/callback?error=";
 // Api End points with base urla
 const String verifyKycApi = "${baseUrl}user/kyc";
 const String sendOtpApi = "${baseUrl}user/send-otp";

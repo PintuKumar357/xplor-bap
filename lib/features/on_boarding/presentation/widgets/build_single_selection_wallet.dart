@@ -2,11 +2,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import '../../../multi_lang/domain/mappers/on_boarding/on_boardings_keys.dart';
 import '../../../../utils/app_colors.dart';
 import '../../../../utils/app_dimensions.dart';
 import '../../../../utils/extensions/font_style/font_styles.dart';
-import '../../../../utils/extensions/string_to_string.dart';
 import '../../../../utils/utils.dart';
 import '../../../../const/local_storage/shared_preferences_helper.dart';
 import '../../../../core/dependency_injection.dart';
@@ -36,11 +34,6 @@ class _SingleSelectionWalletState extends State<SingleSelectionWallet> {
   @override
   void initState() {
     items.clear();
-    if (!sl<SharedPreferencesHelper>().getBoolean(PrefConstKeys.appForBelem)) {
-      widget.entity.title = OnBoardingKeys.digilocker.stringToString;
-      widget.entity.subTitle = OnBoardingKeys.continueWithDigilocker.stringToString;
-      widget.entity.iconLink = Assets.images.digilocker.path;
-    }
     items.add(widget.entity);
     super.initState();
   }
@@ -78,26 +71,20 @@ class _SingleSelectionWalletState extends State<SingleSelectionWallet> {
                   color: Colors.white,
                   child: Row(
                     children: [
-                      sl<SharedPreferencesHelper>().getBoolean(PrefConstKeys.appForBelem)
-                          ? CachedNetworkImage(
-                              height: 60.w,
-                              width: 60.w,
-                              imageUrl: item.iconLink,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => const Center(
-                                child: SizedBox(
-                                  width: 30.0,
-                                  height: 30.0,
-                                  child: CircularProgressIndicator(),
-                                ),
-                              ),
-                              errorWidget: (context, url, error) => const Icon(Icons.error),
-                            )
-                          : Image.asset(
-                              item.iconLink,
-                              height: 60.w,
-                              width: 60.w,
-                            ),
+                      CachedNetworkImage(
+                        height: 60.w,
+                        width: 60.w,
+                        imageUrl: item.iconLink,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: SizedBox(
+                            width: 30.0,
+                            height: 30.0,
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => const Icon(Icons.error),
+                      ),
                       AppDimensions.medium.w.horizontalSpace,
                       Expanded(
                         child: Column(
@@ -108,7 +95,7 @@ class _SingleSelectionWalletState extends State<SingleSelectionWallet> {
                               color: AppColors.blackMedium,
                             ),
                             AppDimensions.extraSmall.verticalSpace,
-                            item.title.titleRegular(
+                            item.subTitle.titleRegular(
                               size: 12.sp,
                               color: AppColors.blackMedium,
                             ),

@@ -90,10 +90,23 @@ void _showConsentDialog(BuildContext context) {
 
 Widget buildMainContentBasedOnState(KycState state, BuildContext context) {
   return Stack(children: [
-    if (state is ShowWebViewState)
+    if (state is ShowWebViewState || state is KycWebLoadingState)
       Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Expanded(child: WebViewWidget(controller: webViewController))]),
+          children: [
+            Expanded(
+              child: WebViewWidget.fromPlatformCreationParams(
+                params: WebViewPlatform.instance is AndroidWebViewPlatform
+                    ? AndroidWebViewWidgetCreationParams(
+                        controller: webViewController.platform,
+                        displayWithHybridComposition: true,
+                      )
+                    : PlatformWebViewWidgetCreationParams(
+                        controller: webViewController.platform,
+                      ),
+              ),
+            ),
+          ]),
     if (state is! KycWebLoadingState && state is! AuthProviderLoadingState)
       Positioned(
           right: AppDimensions.medium,
@@ -125,6 +138,16 @@ Widget _bottomViewContent(BuildContext context, KycState state, Widget agreeCond
           context.read<KycBloc>().add(
               OpenWebViewEvent(redirectUrl: sl<SharedPreferencesHelper>().getString(PrefConstKeys.kycRedirectUrl)));
         },
+      ),
+      TextButton(
+        onPressed: () {
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            checkRouteBasedOnUserJourney(),
+            (route) => false,
+          );
+        },
+        child: Text(OnBoardingKeys.skip.stringToString),
       ),
       AppDimensions.large.verticalSpace
     ],

@@ -159,9 +159,8 @@ class _LocationPageState extends State<LocationAccessPage> {
 
   void _getLocation() async {
     if (await sl<NetworkInfo>().isConnected!) {
-      //await _determinePosition();
-      //_goToNext();
-      _goToNewWelcome();
+      await _determinePosition();
+      _goToNext();
     } else {
       _showErrorMessage();
     }
@@ -174,7 +173,4 @@ class _LocationPageState extends State<LocationAccessPage> {
 
   void _goToNext() =>
       Navigator.pushReplacementNamed(context, Routes.selectLanguageScreen);
-
-  void _goToNewWelcome() =>
-      Navigator.pushReplacementNamed(context, Routes.newWelcomePage);
 }

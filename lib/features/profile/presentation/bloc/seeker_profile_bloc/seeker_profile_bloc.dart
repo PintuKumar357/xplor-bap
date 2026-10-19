@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../domain/usecase/profile_usecase.dart';
+import '../../../domain/entities/profile_activity_counts.dart';
 import '../../../../../utils/app_utils/app_utils.dart';
 import '../../../../../const/local_storage/shared_preferences_helper.dart';
 import '../../../../../core/dependency_injection.dart';
@@ -16,6 +17,7 @@ class SeekerProfileBloc extends Bloc<SeekerProfileEvent, SeekerProfileState> {
   ProfileUseCase profileUseCase;
   UserDataEntity? userData;
   bool isTranslationDone = false;
+  int _profileRequest = 0;
 
   SeekerProfileBloc({required this.profileUseCase}) : super(ProfileInitialState()) {
     on<ProfileUserDataEvent>(_onProfileInitial);
@@ -25,14 +27,19 @@ class SeekerProfileBloc extends Bloc<SeekerProfileEvent, SeekerProfileState> {
 
   Future<void> _onProfileInitial(
       ProfileUserDataEvent event, Emitter<SeekerProfileState> emit) async {
+    final request = ++_profileRequest;
     isTranslationDone = false;
     try {
       emit(state.copyWith(
         profileState: ProfileState.loading,
         userData: null,
+        activityCounts: const ProfileActivityCounts(),
+        isCountsLoading: event.loadActivityCounts,
         uniqueId: DateTime.now().millisecondsSinceEpoch,
       ));
-      userData = await profileUseCase.getUserData();
+      final loadedUser = await profileUseCase.getUserData();
+      if (request != _profileRequest || emit.isDone) return;
+      userData = loadedUser;
       sl<SharedPreferencesHelper>().setString(PrefConstKeys.walletId, userData?.wallet ?? "");
 
       if (sl<SharedPreferencesHelper>().getString(PrefConstKeys.selectedLanguageCode) == "en") {
@@ -49,10 +56,28 @@ class SeekerProfileBloc extends Bloc<SeekerProfileEvent, SeekerProfileState> {
         ));
       }
     } catch (e) {
+      if (request != _profileRequest || emit.isDone) return;
       emit(state.copyWith(
         profileState: ProfileState.failure,
         userData: null,
+        isCountsLoading: false,
         message: AppUtils.getErrorMessage(e.toString()),
+        uniqueId: DateTime.now().millisecondsSinceEpoch,
+      ));
+      return;
+    }
+
+    if (event.loadActivityCounts) {
+      ProfileActivityCounts counts;
+      try {
+        counts = await profileUseCase.getActivityCounts(userData?.phoneNumber ?? '');
+      } catch (_) {
+        counts = const ProfileActivityCounts();
+      }
+      if (request != _profileRequest || emit.isDone) return;
+      emit(state.copyWith(
+        activityCounts: counts,
+        isCountsLoading: false,
         uniqueId: DateTime.now().millisecondsSinceEpoch,
       ));
     }
@@ -62,6 +87,7 @@ class SeekerProfileBloc extends Bloc<SeekerProfileEvent, SeekerProfileState> {
       SeekerProfileLogoutEvent event, Emitter<SeekerProfileState> emit) async {
     try {
       await profileUseCase.logout();
+      _profileRequest++;
       emit(ProfileLogoutState());
     } catch (e) {
       throw Exception(e.toString());

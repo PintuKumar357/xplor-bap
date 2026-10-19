@@ -15,7 +15,12 @@ sealed class SeekerProfileEvent extends Equatable {
 /// Event to load user data for the seeker profile.
 /// This event can be dispatched to trigger the loading of user data from a repository or API.
 class ProfileUserDataEvent extends SeekerProfileEvent {
-  const ProfileUserDataEvent();
+  const ProfileUserDataEvent({this.loadActivityCounts = false});
+
+  final bool loadActivityCounts;
+
+  @override
+  List<Object?> get props => [loadActivityCounts];
 }
 
 /// Event to handle profile and translation operations.

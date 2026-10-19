@@ -87,22 +87,4 @@ class Routes {
   static const String certificate = "/certificate";
 
   static const String payment = "/payment";
-
-  static const String newWelcomePage = "/newWelcomePage";
-
-  static const String firstWalkThroughPage = "/firstWalkThroughPage";
-
-  static const String secondWalkThroughPage = "/secondWalkThroughPage";
-
-  static const String thirdWalkThroughPage = "/thirdWalkThroughPage";
-
-  static const String chooseLangPage = "/chooseLangPage";
-
-  static const String yourFocusPage = "/yourFocusPage";
-
-  static const String categoryPage = "/CategoryPage";
-
-  static const String basicInformationPage = "/BasicInformationPage";
-
-  static const String homePage = "/HomePage";
 }

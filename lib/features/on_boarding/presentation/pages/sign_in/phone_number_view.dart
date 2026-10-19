@@ -216,7 +216,7 @@ class _PhoneNumberViewState extends State<PhoneNumberView> {
         isNavigation: false));
 
     _getCountryCode();
-    super.initState();
+      super.initState();
   }
 
   @override

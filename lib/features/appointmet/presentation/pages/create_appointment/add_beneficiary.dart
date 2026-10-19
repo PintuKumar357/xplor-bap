@@ -1,8 +1,53 @@
 import 'dart:convert';  // Import for JSON serialization
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../../utils/common_top_header.dart';
 import '../../../../profile/presentation/pages/seeker_profile/seeker_profile_page_view.dart';
+
+class AbhaIdInputFormatter extends TextInputFormatter {
+  const AbhaIdInputFormatter({this.onInvalidInput});
+
+  final ValueChanged<bool>? onInvalidInput;
+
+  static final _lengthLimit = LengthLimitingTextInputFormatter(
+    14,
+    maxLengthEnforcement: MaxLengthEnforcement.enforced,
+  );
+
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    onInvalidInput?.call(RegExp(r'[^0-9-]').hasMatch(newValue.text));
+    final digitsOnly = FilteringTextInputFormatter.digitsOnly;
+    final oldDigits =
+        digitsOnly.formatEditUpdate(TextEditingValue.empty, oldValue);
+    final newDigits = digitsOnly.formatEditUpdate(oldDigits, newValue);
+    final limited = _lengthLimit.formatEditUpdate(oldDigits, newDigits);
+    final formatted = StringBuffer();
+    for (var index = 0; index < limited.text.length; index++) {
+      if (index == 2 || index == 6 || index == 10) formatted.write('-');
+      formatted.write(limited.text[index]);
+    }
+
+    int formattedOffset(int offset) {
+      if (offset < 0) return formatted.length;
+      return offset +
+          (offset > 2 ? 1 : 0) +
+          (offset > 6 ? 1 : 0) +
+          (offset > 10 ? 1 : 0);
+    }
+
+    return limited.copyWith(
+      text: formatted.toString(),
+      selection: limited.selection.copyWith(
+        baseOffset: formattedOffset(limited.selection.baseOffset),
+        extentOffset: formattedOffset(limited.selection.extentOffset),
+      ),
+      composing: TextRange.empty,
+    );
+  }
+}
 
 // Beneficiary model to hold the data
 class Beneficiary {
@@ -62,6 +107,7 @@ class _AddBeneficiaryPageState extends State<AddBeneficiaryPage> {
   String _relationship = ''; // This will hold the selected relationship
   int _age = 0;
   String _abhaId = '';  // New field for ABHA ID
+  bool _hasInvalidAbhaInput = false;
 
   // List of relationships for the dropdown
   List<String> _relationshipOptions = [
@@ -202,14 +248,37 @@ class _AddBeneficiaryPageState extends State<AddBeneficiaryPage> {
               TextFormField(
                 decoration: InputDecoration(
                   labelText: 'ABHA ID',
+                  hintText: 'XX-XXXX-XXXX-XXXX',
+                  helperText: _hasInvalidAbhaInput
+                      ? 'Only digits are allowed; hyphens are added automatically.'
+                      : null,
+                  helperMaxLines: 3,
+                  helperStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  errorMaxLines: 2,
                   border: OutlineInputBorder(),
                 ),
+                keyboardType: TextInputType.number,
+                autocorrect: false,
+                enableSuggestions: false,
+                inputFormatters: [
+                  AbhaIdInputFormatter(onInvalidInput: (hasInvalidInput) {
+                    if (_hasInvalidAbhaInput != hasInvalidInput) {
+                      setState(() => _hasInvalidAbhaInput = hasInvalidInput);
+                    }
+                  }),
+                ],
                 onChanged: (value) {
                   _abhaId = value;
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter an ABHA ID';
+                  }
+                  if (!RegExp(r'^[0-9]{2}-[0-9]{4}-[0-9]{4}-[0-9]{4}$')
+                      .hasMatch(value)) {
+                    return 'Enter a 14-digit ABHA ID (XX-XXXX-XXXX-XXXX)';
                   }
                   return null;
                 },

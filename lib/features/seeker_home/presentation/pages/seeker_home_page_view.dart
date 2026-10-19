@@ -12,6 +12,7 @@ import '../../../../utils/common_top_header.dart';
 import '../../../appointmet/domain/entities/CreateAppointmentArgs.dart';
 import '../../../appointmet/presentation/pages/doctor/doctor.dart';
 import '../../../profile/presentation/bloc/seeker_profile_bloc/seeker_profile_bloc.dart';
+import '../widgets/doctor_photo.dart';
 
 class SeekerHomePageView extends StatefulWidget {
   const SeekerHomePageView({super.key});
@@ -24,7 +25,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
   List<dynamic> _healthRecords = [];
   List<dynamic> _healthRecordsFilter = [];
   bool _isLoading = false;
-  bool   _isLoggedIn=false;
+  bool _isLoggedIn = false;
   String _errorMessage = '';
   String _searchQuery = "";
   String? _selectedSpecialist;
@@ -37,10 +38,9 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
   }
 
   Future<void> _fetchHealthRecords() async {
-    final url = Uri.parse(
-        '$domain/registry/api/v1/Hospital/search');
+    final url = Uri.parse('$domain/registry/api/v1/Hospital/search');
 
-    setState(()  {
+    setState(() {
       _isLoading = true;
       //const bool isLoggedIn = false;
     });
@@ -71,7 +71,7 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
       } else {
         setState(() {
           _errorMessage =
-          'Failed to load health records: ${response.statusCode}';
+              'Failed to load health records: ${response.statusCode}';
         });
       }
     } catch (e) {
@@ -94,15 +94,14 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
           return matchesSpecialist && matchesHospital;
         }).toList();
       });
-
     } else {
       setState(() {
         _healthRecords = _healthRecordsFilter;
       });
     }
     setState(() {
-      _selectedSpecialist=null;
-      _selectedHospital =null;
+      _selectedSpecialist = null;
+      _selectedHospital = null;
     });
   }
 
@@ -116,137 +115,133 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
       builder: (BuildContext context) {
         return StatefulBuilder(
             builder: (BuildContext context, StateSetter dialogSetState) {
-              // Get unique specialists and hospitals
-              final uniqueSpecialists = _healthRecordsFilter
-                  .map<String>((record) => record['doctorSpecialization'] ?? '')
-                  .where((specialist) => specialist.isNotEmpty)
-                  .toSet()
-                  .toList();
+          // Get unique specialists and hospitals
+          final uniqueSpecialists = _healthRecordsFilter
+              .map<String>((record) => record['doctorSpecialization'] ?? '')
+              .where((specialist) => specialist.isNotEmpty)
+              .toSet()
+              .toList();
 
-              final uniqueHospitals = _healthRecordsFilter
-                  .map<String>((record) => record['hospitalName'] ?? '')
-                  .where((hospital) => hospital.isNotEmpty)
-                  .toSet()
-                  .toList();
+          final uniqueHospitals = _healthRecordsFilter
+              .map<String>((record) => record['hospitalName'] ?? '')
+              .where((hospital) => hospital.isNotEmpty)
+              .toSet()
+              .toList();
 
-              return Dialog(
-                backgroundColor: Colors.transparent,
-                child: Container(
-                  width: MediaQuery
-                      .of(context)
-                      .size
-                      .width * 0.85,
-                  padding: const EdgeInsets.all(15.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              width: MediaQuery.of(context).size.width * 0.85,
+              padding: const EdgeInsets.all(15.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Filter',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Filter',
+                  SizedBox(height: 16),
+
+                  // Specialist Dropdown
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Color(0xFF1581BF)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: DropdownButton<String>(
+                        value: localSelectedSpecialist,
+                        hint: Text('Select Specialist'),
+                        onChanged: (String? newValue) {
+                          dialogSetState(() {
+                            localSelectedSpecialist = newValue;
+                          });
+                        },
+                        isExpanded: true,
+                        items: uniqueSpecialists
+                            .map<DropdownMenuItem<String>>((String specialist) {
+                          return DropdownMenuItem<String>(
+                            value: specialist,
+                            child: Text(specialist),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+
+                  // Hospital Dropdown
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Color(0xFF1581BF)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: DropdownButton<String>(
+                        value: localSelectedHospital,
+                        hint: Text('Select Hospital'),
+                        onChanged: (String? newValue) {
+                          dialogSetState(() {
+                            localSelectedHospital = newValue;
+                          });
+                        },
+                        isExpanded: true,
+                        items: uniqueHospitals
+                            .map<DropdownMenuItem<String>>((String hospital) {
+                          return DropdownMenuItem<String>(
+                            value: hospital,
+                            child: Text(hospital),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+
+                  // Apply Filter Button
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Update the class-level variables when Apply is pressed
+                        setState(() {
+                          _selectedSpecialist = localSelectedSpecialist;
+                          _selectedHospital = localSelectedHospital;
+                        });
+                        Navigator.pop(context);
+                        _applyFilters();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF1581BF),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 12, horizontal: 40),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Apply Filter',
                         style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 16),
-
-                      // Specialist Dropdown
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Color(0xFF1581BF)),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: DropdownButton<String>(
-                            value: localSelectedSpecialist,
-                            hint: Text('Select Specialist'),
-                            onChanged: (String? newValue) {
-                              dialogSetState(() {
-                                localSelectedSpecialist = newValue;
-                              });
-                            },
-                            isExpanded: true,
-                            items: uniqueSpecialists.map<
-                                DropdownMenuItem<String>>((String specialist) {
-                              return DropdownMenuItem<String>(
-                                value: specialist,
-                                child: Text(specialist),
-                              );
-                            }).toList(),
-                          ),
+                          color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: 16),
-
-                      // Hospital Dropdown
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Color(0xFF1581BF)),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: DropdownButton<String>(
-                            value: localSelectedHospital,
-                            hint: Text('Select Hospital'),
-                            onChanged: (String? newValue) {
-                              dialogSetState(() {
-                                localSelectedHospital = newValue;
-                              });
-                            },
-                            isExpanded: true,
-                            items: uniqueHospitals.map<
-                                DropdownMenuItem<String>>((String hospital) {
-                              return DropdownMenuItem<String>(
-                                value: hospital,
-                                child: Text(hospital),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20),
-
-                      // Apply Filter Button
-                      Center(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Update the class-level variables when Apply is pressed
-                            setState(() {
-                              _selectedSpecialist = localSelectedSpecialist;
-                              _selectedHospital = localSelectedHospital;
-                            });
-                            Navigator.pop(context);
-                            _applyFilters();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF1581BF),
-                            padding: EdgeInsets.symmetric(
-                                vertical: 12, horizontal: 40),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: Text(
-                            'Apply Filter',
-                            style: TextStyle(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            }
-        );
+                ],
+              ),
+            ),
+          );
+        });
       },
     );
   }
+
   Future<void> _refreshData() async {
     // Simulate a delay for demonstration
     await _fetchHealthRecords();
@@ -267,8 +262,6 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
           onBackButtonPressed: () => Navigator.of(context).pop(),
         ),
       ),
-
-
       body: Container(
         color: Colors.grey[200], // Set the background color to light gray
         child: Column(
@@ -287,8 +280,8 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                         // Shadow color with some opacity
                         blurRadius: 6.0,
                         // Blur radius for a soft shadow
-                        offset: Offset(
-                            0, 2), // Shadow offset, slightly downward
+                        offset:
+                            Offset(0, 2), // Shadow offset, slightly downward
                       ),
                     ],
                   ),
@@ -312,16 +305,14 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                         borderRadius: BorderRadius.circular(7.0),
                         // Border radius for the focused state
                         borderSide: const BorderSide(
-                          // Border color when focused
-                          // width: 2.0, // Border width when focused
-                        ),
+                            // Border color when focused
+                            // width: 2.0, // Border width when focused
+                            ),
                       ),
                       filled: true,
                       fillColor: Colors.white,
                     ),
-                  )
-
-              ),
+                  )),
             ),
             // Filter Button (added below search bar)
 
@@ -336,7 +327,8 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         side: BorderSide(color: Color(0xFF1581BF)),
-                        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
@@ -362,11 +354,13 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
                     ),
                     SizedBox(width: 16), // Add some spacing between buttons
                     ElevatedButton(
-                      onPressed: _refreshData, // Add onPressed for refresh button
+                      onPressed:
+                          _refreshData, // Add onPressed for refresh button
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         side: BorderSide(color: Color(0xFF1581BF)),
-                        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
@@ -397,197 +391,206 @@ class _SeekerHomePageViewState extends State<SeekerHomePageView> {
 
             _isLoading
                 ? Padding(
-              padding: const EdgeInsets.all(20.0), // Add padding to the loader
-              child: const CircularProgressIndicator(), // Show loading indicator while fetching data
-            )
+                    padding:
+                        const EdgeInsets.all(20.0), // Add padding to the loader
+                    child:
+                        const CircularProgressIndicator(), // Show loading indicator while fetching data
+                  )
                 : _errorMessage.isNotEmpty
-                ? Padding(
-              padding: const EdgeInsets.all(20.0), // Add padding to the error message
-              child: Text(
-                _errorMessage,
-                style: const TextStyle(fontSize: 18, color: Colors.red),
-              ), // Show error message with padding
-            )
-            // The rest of your content when not loading and no error
+                    ? Padding(
+                        padding: const EdgeInsets.all(
+                            20.0), // Add padding to the error message
+                        child: Text(
+                          _errorMessage,
+                          style:
+                              const TextStyle(fontSize: 18, color: Colors.red),
+                        ), // Show error message with padding
+                      )
+                    // The rest of your content when not loading and no error
 
-                : Expanded(
-              child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
-                  builder: (context, state) {
+                    : Expanded(
+                        child:
+                            BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
+                                builder: (context, state) {
+                          return ListView.builder(
+                            itemCount: _healthRecords.length,
+                            itemBuilder: (context, index) {
+                              var record = _healthRecords[index];
 
-                    return ListView.builder(
-                      itemCount: _healthRecords.length,
-                      itemBuilder: (context, index) {
-                        var record = _healthRecords[index];
+                              // If search query is not empty, filter records by doctor name
+                              if (_searchQuery.isNotEmpty &&
+                                  !(record['doctorName'] ?? '')
+                                      .toLowerCase()
+                                      .contains(_searchQuery.toLowerCase())) {
+                                return const SizedBox
+                                    .shrink(); // Skip this record if it doesn't match search query
+                              }
 
-                        // If search query is not empty, filter records by doctor name
-                        if (_searchQuery.isNotEmpty &&
-                            !(record['doctorName'] ?? '')
-                                .toLowerCase()
-                                .contains(_searchQuery.toLowerCase())) {
-                          return const SizedBox
-                              .shrink(); // Skip this record if it doesn't match search query
-                        }
-
-                        return Card(
-                          color: Colors.white,
-                          // Set the card background color to white
-                          margin: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 15),
-                          elevation: 5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            // Reduced padding for smaller card
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Doctor's Photo and Name in Row
-                                InkWell(
-                                  onTap: () {
-                                    Navigator.pushNamed(context,
-                                        Routes.doctorDetail, arguments: Doctor(
-                                            name: record['doctorName'] ?? '',
-                                            specialty: record['doctorSpecialization'] ??
-                                                '',
-                                            imageUrl: record['doctorPhoto'] ??
-                                                '',
-                                            hospital: record['hospitalName'] ??
-                                                'Hospital Name',
-                                            id: record['id'] ??
-                                                'id'));
-                                  },
-                                  child: Row(
+                              return Card(
+                                color: Colors.white,
+                                // Set the card background color to white
+                                margin: const EdgeInsets.symmetric(
+                                    vertical: 10, horizontal: 15),
+                                elevation: 5,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  // Reduced padding for smaller card
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      // Left side: Doctor's Photo (with square and border radius)
-                                      Container(
-                                        width: 70,
-                                        // Reduced size for the image
-                                        height: 70,
-                                        // Reduced size for the image
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                              5),
-                                          // Border radius for rounded corners
-                                          image: DecorationImage(
-                                            image: NetworkImage(
-                                                record['doctorPhoto'] ?? ''),
-                                            fit: BoxFit.fill,
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(width: 16),
-                                      // Add space between the photo and the text
-
-                                      // Right side: Doctor Info (Doctor's Name and Specialization)
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment
-                                              .start,
+                                      // Doctor's Photo and Name in Row
+                                      InkWell(
+                                        onTap: () {
+                                          Navigator.pushNamed(context,
+                                              Routes.doctorDetail,
+                                              arguments: Doctor(
+                                                  name: record['doctorName'] ??
+                                                      '',
+                                                  specialty: record[
+                                                          'doctorSpecialization'] ??
+                                                      '',
+                                                  imageUrl:
+                                                      record['doctorPhoto'] ??
+                                                          '',
+                                                  hospital:
+                                                      record['hospitalName'] ??
+                                                          'Hospital Name',
+                                                  id: record['id'] ?? 'id'));
+                                        },
+                                        child: Row(
                                           children: [
-                                            Text(
-                                              record['doctorName'] ?? 'N/A',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                // Reduced text size
-                                                fontWeight: FontWeight.bold,
+                                            // Left side: Doctor's Photo (with square and border radius)
+                                            DoctorPhoto(
+                                              imageUrl: record['doctorPhoto'],
+                                              doctorId: record['osid'],
+                                            ),
+                                            SizedBox(width: 16),
+                                            // Add space between the photo and the text
+
+                                            // Right side: Doctor Info (Doctor's Name and Specialization)
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    record['doctorName'] ??
+                                                        'N/A',
+                                                    style: TextStyle(
+                                                      fontSize: 18,
+                                                      // Reduced text size
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 5),
+                                                  Text(
+                                                    record['doctorSpecialization'] ??
+                                                        'Specialization',
+                                                    style: TextStyle(
+                                                        fontSize: 14,
+                                                        color: Colors
+                                                            .grey), // Smaller size
+                                                  ),
+                                                  SizedBox(height: 5),
+                                                  Divider(
+                                                    thickness: 1,
+                                                    color: Color(0xFF1581BF),
+                                                  ),
+                                                  SizedBox(height: 5),
+                                                  Text(
+                                                    record['hospitalName'] ??
+                                                        'Hospital Name',
+                                                    style: TextStyle(
+                                                        fontSize:
+                                                            14), // Smaller size
+                                                  ),
+                                                ],
                                               ),
-                                            ),
-                                            SizedBox(height: 5),
-                                            Text(
-                                              record['doctorSpecialization'] ??
-                                                  'Specialization',
-                                              style: TextStyle(fontSize: 14,
-                                                  color: Colors
-                                                      .grey), // Smaller size
-                                            ),
-                                            SizedBox(height: 5),
-                                            Divider(
-                                              thickness: 1,
-                                              color: Color(0xFF1581BF),
-                                            ),
-                                            SizedBox(height: 5),
-                                            Text(
-                                              record['hospitalName'] ??
-                                                  'Hospital Name',
-                                              style: TextStyle(
-                                                  fontSize: 14), // Smaller size
                                             ),
                                           ],
                                         ),
                                       ),
+                                      SizedBox(height: 10),
+
+                                      // Full-width Button with Green Border and Text
+                                      Container(
+                                        width: double.infinity,
+                                        // Makes the button stretch across the card width
+                                        child: ElevatedButton(
+                                          onPressed: () async {
+                                            // Handle button press
+
+                                            _isLoggedIn =
+                                                await AppUtils.checkToken()
+                                                    as bool;
+
+                                            if (_isLoggedIn) {
+                                              var selectedDoctor =
+                                                  _healthRecords[index];
+
+                                              Navigator.pushNamed(context,
+                                                  Routes.createAppointmentsPage,
+                                                  arguments: Doctor(
+                                                      name: selectedDoctor[
+                                                              'doctorName'] ??
+                                                          '',
+                                                      specialty:
+                                                          selectedDoctor[
+                                                                  'doctorSpecialization'] ??
+                                                              '',
+                                                      imageUrl: selectedDoctor[
+                                                              'doctorPhoto'] ??
+                                                          '',
+                                                      hospital: selectedDoctor[
+                                                              'hospitalName'] ??
+                                                          'Hospital Name',
+                                                      id: selectedDoctor[
+                                                              'osid'] ??
+                                                          'id'));
+                                            } else {
+                                              Navigator.pushNamed(
+                                                  context, Routes.login);
+                                            }
+                                            // Navigator.pushNamed(context,
+                                            //     Routes.createAppointmentsPage, arguments:Doctor(name: selectedDoctor['doctorName'] ?? '', specialty: selectedDoctor['doctorSpecialization'] ??
+                                            //         'Specialization', hospital: selectedDoctor['hospitalName'] ??
+                                            //         'Hospital Name', imageUrl: selectedDoctor['doctorPhoto'] ?? '') ,);
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            // Set background color to white
+                                            side: BorderSide(
+                                                color: Color(0xFF1581BF)),
+                                            // Set border color to green
+                                            padding: EdgeInsets.all(12),
+                                            // Padding inside the button
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(
+                                                  6), // Border radius for button
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Book Appointment',
+                                            style: TextStyle(
+                                                color: Color(
+                                                    0xFF1581BF) // Set text color to green
+                                                ),
+                                          ),
+                                        ),
+                                      ),
                                     ],
-
                                   ),
                                 ),
-                                SizedBox(height: 10),
-
-                                // Full-width Button with Green Border and Text
-                                Container(
-                                  width: double.infinity,
-                                  // Makes the button stretch across the card width
-                                  child: ElevatedButton(
-                                    onPressed: () async {
-                                      // Handle button press
-
-                                      _isLoggedIn=  await AppUtils.checkToken() as bool;
-
-                                      if(_isLoggedIn){
-                                        var selectedDoctor = _healthRecords[index];
-
-                                        Navigator.pushNamed(context,
-                                            Routes.createAppointmentsPage,
-                                            arguments:   Doctor(
-                                                name: selectedDoctor['doctorName'] ?? '',
-                                                specialty: selectedDoctor['doctorSpecialization'] ??
-                                                    '',
-                                                imageUrl: selectedDoctor['doctorPhoto'] ??
-                                                    '',
-                                                hospital: selectedDoctor['hospitalName'] ??
-                                                    'Hospital Name',
-                                                id: selectedDoctor['osid'] ??
-                                                    'id'));
-                                      }
-                                      else{
-                                        Navigator.pushNamed(context,
-                                            Routes.login);
-                                      }
-                                      // Navigator.pushNamed(context,
-                                      //     Routes.createAppointmentsPage, arguments:Doctor(name: selectedDoctor['doctorName'] ?? '', specialty: selectedDoctor['doctorSpecialization'] ??
-                                      //         'Specialization', hospital: selectedDoctor['hospitalName'] ??
-                                      //         'Hospital Name', imageUrl: selectedDoctor['doctorPhoto'] ?? '') ,);
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      // Set background color to white
-                                      side: BorderSide(
-                                          color: Color(0xFF1581BF)),
-                                      // Set border color to green
-                                      padding: EdgeInsets.all(12),
-                                      // Padding inside the button
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            6), // Border radius for button
-                                      ),
-                                    ),
-                                    child: const Text(
-                                      'Book Appointment',
-                                      style: TextStyle(
-                                          color: Color(
-                                              0xFF1581BF) // Set text color to green
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  }),
-            ),
+                              );
+                            },
+                          );
+                        }),
+                      ),
           ],
         ),
       ),

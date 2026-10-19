@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "xplor" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "xplor" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2024 com.example. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "xplor.exe" "\0"
             VALUE "ProductName", "xplor" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

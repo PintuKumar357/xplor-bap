@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -35,52 +37,68 @@ class CommonPinCodeTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Create PinCodeTextField widget
-    return PinCodeTextField(
-      cursorColor: AppColors.primaryColor,
-      keyboardType: TextInputType.phone,
-      inputFormatters: [
-        FilteringTextInputFormatter.digitsOnly, // Allow only digits
-      ],
-      length: 6,
-      hintCharacter: '0',
-      obscureText: hidePin ?? false,
-      obscuringWidget: hidePin ?? false
-          ? obscureIcon ??
-              SvgPicture.asset(
-                Assets.images.icStarPin,
-              )
-          : null,
-      autoFocus: false,
-      animationType: AnimationType.fade,
-      errorTextSpace: AppDimensions.mediumXL,
-      pinTheme: PinTheme(
-        shape: PinCodeFieldShape.box,
-        borderRadius: BorderRadius.circular(8),
-        fieldHeight: height ?? 45.w,
-        fieldWidth: width ?? 45.w,
-        borderWidth: 1.w,
-        fieldOuterPadding: const EdgeInsets.symmetric(
-          horizontal: AppDimensions.extraSmall,
+    return LayoutBuilder(builder: (context, constraints) {
+      const pinLength = 6;
+      final horizontalPadding = constraints.hasBoundedWidth
+          ? math.min(
+              AppDimensions.extraSmall, constraints.maxWidth / (pinLength * 4))
+          : AppDimensions.extraSmall;
+      final preferredWidth = width ?? 45.w;
+      final fieldWidth = constraints.hasBoundedWidth
+          ? math.min(preferredWidth,
+              constraints.maxWidth / pinLength - horizontalPadding * 2)
+          : preferredWidth;
+
+      return PinCodeTextField(
+        cursorColor: AppColors.primaryColor,
+        keyboardType: TextInputType.phone,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly, // Allow only digits
+        ],
+        length: pinLength,
+        hintCharacter: '0',
+        obscureText: hidePin ?? false,
+        obscuringWidget: hidePin ?? false
+            ? obscureIcon ??
+                SvgPicture.asset(
+                  Assets.images.icStarPin,
+                )
+            : null,
+        autoFocus: false,
+        animationType: AnimationType.fade,
+        errorTextSpace: AppDimensions.mediumXL,
+        pinTheme: PinTheme(
+          shape: PinCodeFieldShape.box,
+          borderRadius: BorderRadius.circular(8),
+          fieldHeight: height ?? 45.w,
+          fieldWidth: fieldWidth,
+          borderWidth: 1.w,
+          fieldOuterPadding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+          ),
+          inactiveColor: AppColors.greye8e8e8,
+          inactiveFillColor: AppColors.white,
+          activeFillColor: pinFilledColor ?? Colors.transparent,
+          activeColor: pinBorderColor ?? AppColors.primaryColor,
+          selectedFillColor: pinFilledColor ?? Colors.transparent,
+          selectedColor: pinBorderColor ?? AppColors.primaryColor,
+          //textColor: Colors.black,
         ),
-        inactiveColor: AppColors.greye8e8e8,
-        inactiveFillColor: AppColors.white,
-        activeFillColor: pinFilledColor ?? Colors.transparent,
-        activeColor: pinBorderColor ?? AppColors.primaryColor,
-        selectedFillColor: pinFilledColor ?? Colors.transparent,
-        selectedColor: pinBorderColor ?? AppColors.primaryColor,
-        //textColor: Colors.black,
-      ),
-      animationDuration: const Duration(milliseconds: 300),
-      enableActiveFill: true,
-      controller: textEditingController,
-      onCompleted: (v) {},
-      onChanged: onChanged,
-      beforeTextPaste: (text) {
-        return true;
-      },
-      appContext: context,
-      readOnly: isReadOnly ?? false,
-      textStyle: GoogleFonts.manrope(fontWeight: FontWeight.w700, fontSize: 14.sp, color: AppColors.countryCodeColor),
-    );
+        animationDuration: const Duration(milliseconds: 300),
+        enableActiveFill: true,
+        controller: textEditingController,
+        onCompleted: (v) {},
+        onChanged: onChanged,
+        beforeTextPaste: (text) {
+          return true;
+        },
+        appContext: context,
+        readOnly: isReadOnly ?? false,
+        textStyle: GoogleFonts.manrope(
+            fontWeight: FontWeight.w700,
+            fontSize: 14.sp,
+            color: AppColors.countryCodeColor),
+      );
+    });
   }
 }

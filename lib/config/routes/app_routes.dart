@@ -4,15 +4,6 @@ import 'package:xplor/features/appointmet/presentation/pages/doctor/appointment_
 import 'package:xplor/features/appointmet/presentation/pages/doctor/doctor.dart';
 // import 'package:xplor/HealthRecords_Page.dart';
 import 'package:xplor/features/my_orders/domain/entities/certificate_view_arguments.dart';
-import 'package:xplor/features/new_walk_through/basic_infomation_page.dart';
-import 'package:xplor/features/new_walk_through/category_page.dart';
-import 'package:xplor/features/new_walk_through/choose_lang_page.dart';
-import 'package:xplor/features/new_walk_through/first_walk_through_page.dart';
-import 'package:xplor/features/new_walk_through/home_page.dart';
-import 'package:xplor/features/new_walk_through/new_welcome_page.dart';
-import 'package:xplor/features/new_walk_through/second_walk_through_page.dart';
-import 'package:xplor/features/new_walk_through/third_walk_through_page.dart';
-import 'package:xplor/features/new_walk_through/your_focus_page.dart';
 // import '../../DataTable_Page.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/add_beneficiary.dart';
 import '../../features/appointmet/presentation/pages/create_appointment/create_appointment.dart';
@@ -184,31 +175,6 @@ class AppRoutes {
       case Routes.payment:
         final url = settings.arguments as String?;
         return customPageRoute(PaymentScreen(paymentUrl: url!));
-      case Routes.newWelcomePage:
-        return customPageRoute(const NewWelcomeScreen());
-      case Routes.firstWalkThroughPage:
-        return customPageRoute(const FirstWalkThroughPage());
-
-      case Routes.secondWalkThroughPage:
-        return customPageRoute(const SecondWalkThroughPage());
-      case Routes.thirdWalkThroughPage:
-        return customPageRoute(const ThirdWalkThroughPage());
-
-      case Routes.chooseLangPage:
-        return customPageRoute(const ChooseLangPage());
-
-      case Routes.yourFocusPage:
-        return customPageRoute(const YourFocusPage());
-
-      case Routes.categoryPage:
-        return customPageRoute(const CategoryPage());
-
-      case Routes.basicInformationPage:
-        return customPageRoute(const BasicInformationPage());
-
-      case Routes.homePage:
-        return customPageRoute(const HomePage());
-
       default:
         // Return a default material route, displaying SplashView for unknown routes.
         return customPageRoute(const SplashPage());

@@ -8,11 +8,14 @@ import 'package:http/http.dart' as http;
 import 'package:xplor/const/local_storage/shared_preferences_helper.dart';
 
 import 'package:xplor/core/api_constants.dart';
+import 'package:xplor/core/dependency_injection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xplor/features/appointmet/presentation/pages/doctor/doctor.dart';
 import 'package:xplor/features/multi_lang/domain/mappers/profile/profile_keys.dart';
 import 'package:xplor/features/on_boarding/domain/entities/user_data_entity.dart';
 import 'package:xplor/features/profile/presentation/bloc/seeker_profile_bloc/seeker_profile_bloc.dart';
+import 'package:xplor/features/profile/presentation/widgets/profile_display_values.dart';
+import 'package:xplor/features/wallet/domain/usecase/wallet_usecase.dart';
 
 import 'package:xplor/utils/app_colors.dart';
 import 'package:xplor/utils/common_top_header.dart';
@@ -54,6 +57,77 @@ class Beneficiary {
 
   factory Beneficiary.fromJson(String jsonStr) =>
       Beneficiary.fromMap(json.decode(jsonStr));
+}
+
+const _missingAppointmentWalletMessage =
+    'Wallet ID is unavailable. Please open Wallet and try booking again.';
+
+String? _usableAppointmentWalletId(String? value) {
+  final walletId = value?.trim() ?? '';
+  if (walletId.isEmpty ||
+      const ['null', 'na', 'n/a', 'undefined']
+          .contains(walletId.toLowerCase())) {
+    return null;
+  }
+  return walletId;
+}
+
+Future<String> resolveAppointmentWalletId({
+  required String? profileWalletId,
+  required Future<String> Function() fetchWalletId,
+}) async {
+  final profileWallet = _usableAppointmentWalletId(profileWalletId);
+  if (profileWallet != null) return profileWallet;
+
+  final fetchedWallet = _usableAppointmentWalletId(await fetchWalletId());
+  if (fetchedWallet == null) {
+    throw StateError(_missingAppointmentWalletMessage);
+  }
+  return fetchedWallet;
+}
+
+Map<String, dynamic> buildAppointmentPayload({
+  required Beneficiary beneficiary,
+  required UserDataEntity userData,
+  required String doctorId,
+  required String appointmentDate,
+  required String link,
+  String? walletId,
+}) {
+  final bookingWalletId =
+      _usableAppointmentWalletId(walletId ?? userData.wallet);
+  if (bookingWalletId == null) {
+    throw StateError(_missingAppointmentWalletMessage);
+  }
+
+  return <String, dynamic>{
+    'abhaId': beneficiary.abhaId,
+    'patientName': beneficiary.name,
+    'link': link,
+    'appointmentDate': appointmentDate,
+    'mobile': userData.phoneNumber,
+    'email': profileDisplayEmail(userData),
+    'prescription': '',
+    'doctorOsid': doctorId,
+    'status': 'new',
+    'walletId': bookingWalletId,
+  }..removeWhere((key, value) =>
+      value == null ||
+      (key == 'email' && value is String && value.trim().isEmpty));
+}
+
+String convertTo24HourFormat(String time12Hour) {
+  try {
+    final normalized =
+        time12Hour.replaceAll('\u202F', ' ').replaceAll('\u00A0', ' ');
+    final format12 = DateFormat("h:mm a");
+    final dateTime = format12.parse(normalized);
+    final format24 = DateFormat("HH:mm");
+    return format24.format(dateTime);
+  } catch (e) {
+    debugPrint("Error converting time format: $e");
+    return time12Hour;
+  }
 }
 
 class CreateAppointment extends StatefulWidget {
@@ -259,18 +333,6 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     return timeSlots;
   }
 
-  String convertTo24HourFormat(String time12Hour) {
-    try {
-      final format12 = DateFormat("h:mm a");
-      final dateTime = format12.parse(time12Hour);
-      final format24 = DateFormat("HH:mm");
-      return format24.format(dateTime);
-    } catch (e) {
-      debugPrint("Error converting time format: $e");
-      return time12Hour;
-    }
-  }
-
   void _disableRandomSlots(List<String> slots) {
     if (slots.length <= 2) return;
 
@@ -286,24 +348,32 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     }
   }
 
-  Future<void> _submitAppointment(UserDataEntity userData) async {
+  Future<bool> _submitAppointment(UserDataEntity userData) async {
+    if (isLoading) return false;
+
     if (_selectedBeneficiary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select a beneficiary')),
       );
-      return;
+      return false;
     }
 
     if (selectedTimeSlot.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select a time slot')),
       );
-      return;
+      return false;
     }
 
     setState(() => isLoading = true);
 
     try {
+      final walletId = await resolveAppointmentWalletId(
+        profileWalletId: userData.wallet,
+        fetchWalletId: () => sl<WalletUseCase>().getWalletId(),
+      );
+      if (!mounted) return false;
+
       String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
       String selectedTime = convertTo24HourFormat(selectedTimeSlot);
 
@@ -311,40 +381,42 @@ class _CreateAppointmentState extends State<CreateAppointment> {
       String appointment = "$formattedDate-$timeFmt";
       String appointmentDate = "$formattedDate $selectedTime";
 
-      final appointmentData = {
-        "abhaId": _selectedBeneficiary?.abhaId ?? userData?.kyc?.provider.id,
-        "patientName": _selectedBeneficiary?.name ?? userData?.kyc?.firstName,
-        "link":
-            "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData?.kyc?.firstName}-TeleConsultation-${appointment}",
-        "appointmentDate": appointmentDate,
-        "mobile": userData?.phoneNumber,
-        "email": userData?.kyc?.email,
-        "prescription": "",
-        "doctorOsid": widget.doctor.id,
-        "status": "new",
-        "walletId": userData?.wallet
-      };
+      final appointmentData = buildAppointmentPayload(
+        beneficiary: _selectedBeneficiary!,
+        userData: userData,
+        walletId: walletId,
+        doctorId: widget.doctor.id,
+        appointmentDate: appointmentDate,
+        link:
+            "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary!.name}-TeleConsultation-${appointment}",
+      );
 
       final response = await http.post(
         Uri.parse('${domain}/registry/api/v1/Appointment'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(appointmentData),
       );
+      if (!mounted) return false;
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Appointment successfully booked!')),
         );
+        return true;
       } else {
-        throw Exception('Failed to book appointment');
+        throw Exception(
+            'Failed to book appointment (HTTP ${response.statusCode})');
       }
     } catch (e) {
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error booking appointment: ${e.toString()}')),
       );
+      return false;
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -690,21 +762,25 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                         ),
                         SizedBox(height: 16.0),
                         ElevatedButton(
-                          onPressed: () async {
-                            if (state.userData != null) {
-                              _submitAppointment(state.userData!);
-                              await triggerNotification(
-                                minutesBefore: 15,
-                                webViewLink: null,
-                                userData: state.userData!,
-                              );
-                              await triggerNotification(
-                                minutesBefore: 2,
-                                webViewLink: null,
-                                userData: state.userData!,
-                              );
-                            }
-                          },
+                          onPressed: isLoading
+                              ? null
+                              : () async {
+                                  if (state.userData != null) {
+                                    final booked = await _submitAppointment(
+                                        state.userData!);
+                                    if (!booked) return;
+                                    await triggerNotification(
+                                      minutesBefore: 15,
+                                      webViewLink: null,
+                                      userData: state.userData!,
+                                    );
+                                    await triggerNotification(
+                                      minutesBefore: 2,
+                                      webViewLink: null,
+                                      userData: state.userData!,
+                                    );
+                                  }
+                                },
                           child: Text('Book Appointment',
                               style: TextStyle(
                                   color: Color(0xFF1581BF))), // Black text

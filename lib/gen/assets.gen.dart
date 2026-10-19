@@ -303,9 +303,6 @@ class $AssetsImagesGen {
   /// File path: assets/images/white_right_arrow.svg
   String get whiteRightArrow => 'assets/images/white_right_arrow.svg';
 
-  AssetGenImage get newWelcomeImage =>
-      const AssetGenImage('assets/images/overlay.png');
-
   /// List of all assets
   List<dynamic> get values => [
         records,
@@ -400,8 +397,7 @@ class $AssetsImagesGen {
         walletSelected,
         walletUnselected,
         welcomePage,
-        whiteRightArrow,
-        newWelcomeImage
+        whiteRightArrow
       ];
 }
 

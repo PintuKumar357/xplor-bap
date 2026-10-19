@@ -68,6 +68,7 @@ dependencies:
   intl:
   timezone: ^0.7.0
   webview_flutter: ^4.0.0
+  webview_flutter_android: ^4.1.0
   build_runner:
   flutter_gen_runner: ^5.4.0
   file_picker: ^6.1.1
@@ -101,6 +102,7 @@ dev_dependencies:
   bloc_test: ^9.0.2
   mockito: ^5.0.15
   mocktail: ^0.2.0
+  webview_flutter_platform_interface: ^2.10.0
   flutter_test:
     sdk: flutter
 
