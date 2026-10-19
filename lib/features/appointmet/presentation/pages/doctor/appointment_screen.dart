@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:xplor/features/appointmet/presentation/pages/doctor/doctor.dart';
 import 'package:xplor/utils/common_top_header.dart';
@@ -21,7 +20,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     TimeOfDay currentTime = startTime;
 
     while (currentTime.hour < endTime.hour ||
-        (currentTime.hour == endTime.hour && currentTime.minute < endTime.minute)) {
+        (currentTime.hour == endTime.hour &&
+            currentTime.minute < endTime.minute)) {
       timeSlots.add(currentTime.format(context));
       int newMinute = currentTime.minute + 15;
       int newHour = currentTime.hour;
@@ -48,12 +48,16 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     List<String> eveningSlots = [];
 
     if (selectedDate.day == DateTime.now().day) {
-      if (now.hour < morningEnd.hour || (now.hour == morningEnd.hour && now.minute < morningEnd.minute)) {
-        morningSlots = _generateTimeSlots(now.hour >= morningStart.hour ? now : morningStart, morningEnd);
+      if (now.hour < morningEnd.hour ||
+          (now.hour == morningEnd.hour && now.minute < morningEnd.minute)) {
+        morningSlots = _generateTimeSlots(
+            now.hour >= morningStart.hour ? now : morningStart, morningEnd);
       }
 
-      if (now.hour < eveningEnd.hour || (now.hour == eveningEnd.hour && now.minute < eveningEnd.minute)) {
-        eveningSlots = _generateTimeSlots(now.hour >= eveningStart.hour ? now : eveningStart, eveningEnd);
+      if (now.hour < eveningEnd.hour ||
+          (now.hour == eveningEnd.hour && now.minute < eveningEnd.minute)) {
+        eveningSlots = _generateTimeSlots(
+            now.hour >= eveningStart.hour ? now : eveningStart, eveningEnd);
       }
     } else {
       morningSlots = _generateTimeSlots(morningStart, morningEnd);
@@ -61,9 +65,17 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
     }
 
     return Scaffold(
-      appBar:PreferredSize(  preferredSize: Size.fromHeight(100),    child: CommonTopHeader(    title: 'Book Appointment  ',    isTitleOnly: false,    dividerColor: Colors.grey,     onBackButtonPressed: () => Navigator.of(context).pop(),  ),),
-            // Adjust height as needed  child: CommonTopHeader(    title: 'Health Details',    isTitleOnly: false,    dividerColor: Colors.grey,
-            // Use appropriate color    onBackButtonPressed: () => Navigator.of(context).pop(),  ),),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(100),
+        child: CommonTopHeader(
+          title: 'Book Appointment  ',
+          isTitleOnly: false,
+          dividerColor: Colors.grey,
+          onBackButtonPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      // Adjust height as needed  child: CommonTopHeader(    title: 'Health Details',    isTitleOnly: false,    dividerColor: Colors.grey,
+      // Use appropriate color    onBackButtonPressed: () => Navigator.of(context).pop(),  ),),
       /*AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
@@ -81,9 +93,7 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
           children: [
             // Doctor Details
             Center(
-              child: Column(
-
-              ),
+              child: Column(),
             ),
             SizedBox(height: 16.0),
             // Date Selector
@@ -98,37 +108,37 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
             Text("Select Morning Slot"),
             morningSlots.isNotEmpty
                 ? Wrap(
-              spacing: 8.0,
-              children: morningSlots.map((String time) {
-                return ChoiceChip(
-                  label: Text(time),
-                  selected: selectedTimeSlot == time,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      selectedTimeSlot = time;
-                    });
-                  },
-                );
-              }).toList(),
-            )
+                    spacing: 8.0,
+                    children: morningSlots.map((String time) {
+                      return ChoiceChip(
+                        label: Text(time),
+                        selected: selectedTimeSlot == time,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            selectedTimeSlot = time;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  )
                 : Text("No morning slots available"),
             SizedBox(height: 16.0),
             Text("Select Evening Slot"),
             eveningSlots.isNotEmpty
                 ? Wrap(
-              spacing: 8.0,
-              children: eveningSlots.map((String time) {
-                return ChoiceChip(
-                  label: Text(time),
-                  selected: selectedTimeSlot == time,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      selectedTimeSlot = time;
-                    });
-                  },
-                );
-              }).toList(),
-            )
+                    spacing: 8.0,
+                    children: eveningSlots.map((String time) {
+                      return ChoiceChip(
+                        label: Text(time),
+                        selected: selectedTimeSlot == time,
+                        onSelected: (bool selected) {
+                          setState(() {
+                            selectedTimeSlot = time;
+                          });
+                        },
+                      );
+                    }).toList(),
+                  )
                 : Text("No evening slots available"),
             SizedBox(height: 16.0),
             // Consultation Type
@@ -143,7 +153,10 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                     },
                     child: Text('Video Consultation'),
                     style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white, backgroundColor: consultationType == 'Video' ? Colors.blue : Colors.grey,
+                      foregroundColor: Colors.white,
+                      backgroundColor: consultationType == 'Video'
+                          ? Colors.blue
+                          : Colors.grey,
                     ),
                   ),
                 ),
@@ -157,7 +170,10 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                     },
                     child: Text('Audio Consultation'),
                     style: ElevatedButton.styleFrom(
-                      foregroundColor: Colors.white, backgroundColor: consultationType == 'Audio' ? Colors.blue : Colors.grey,
+                      foregroundColor: Colors.white,
+                      backgroundColor: consultationType == 'Audio'
+                          ? Colors.blue
+                          : Colors.grey,
                     ),
                   ),
                 ),
@@ -173,7 +189,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
                   builder: (BuildContext context) {
                     return AlertDialog(
                       title: Text('Appointment Booked'),
-                      content: Text('Appointment booked with ${widget.doctor.name} on ${selectedDate.toLocal()} at $selectedTimeSlot for $consultationType consultation.'),
+                      content: Text(
+                          'Appointment booked with ${widget.doctor.name} on ${selectedDate.toLocal()} at $selectedTimeSlot for $consultationType consultation.'),
                       actions: [
                         TextButton(
                           onPressed: () {
@@ -189,7 +206,8 @@ class _AppointmentScreenState extends State<AppointmentScreen> {
               },
               child: Text('Book Appointment'),
               style: ElevatedButton.styleFrom(
-                foregroundColor: Colors.white, backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+                backgroundColor: Colors.blue,
                 minimumSize: const Size(double.infinity, 50),
               ),
             ),

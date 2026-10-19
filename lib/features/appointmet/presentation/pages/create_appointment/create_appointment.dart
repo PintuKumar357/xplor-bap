@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:awesome_notifications/awesome_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -7,15 +8,19 @@ import 'package:http/http.dart' as http;
 import 'package:xplor/const/local_storage/shared_preferences_helper.dart';
 
 import 'package:xplor/core/api_constants.dart';
+import 'package:xplor/core/dependency_injection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xplor/features/appointmet/presentation/pages/doctor/doctor.dart';
 import 'package:xplor/features/multi_lang/domain/mappers/profile/profile_keys.dart';
 import 'package:xplor/features/on_boarding/domain/entities/user_data_entity.dart';
 import 'package:xplor/features/profile/presentation/bloc/seeker_profile_bloc/seeker_profile_bloc.dart';
+import 'package:xplor/features/profile/presentation/widgets/profile_display_values.dart';
+import 'package:xplor/features/wallet/domain/usecase/wallet_usecase.dart';
 
 import 'package:xplor/utils/app_colors.dart';
 import 'package:xplor/utils/common_top_header.dart';
 import '../../../domain/entities/CreateAppointmentArgs.dart';
+import '../../../../../config/routes/path_routing.dart';
 
 class Beneficiary {
   final String name;
@@ -54,6 +59,77 @@ class Beneficiary {
       Beneficiary.fromMap(json.decode(jsonStr));
 }
 
+const _missingAppointmentWalletMessage =
+    'Wallet ID is unavailable. Please open Wallet and try booking again.';
+
+String? _usableAppointmentWalletId(String? value) {
+  final walletId = value?.trim() ?? '';
+  if (walletId.isEmpty ||
+      const ['null', 'na', 'n/a', 'undefined']
+          .contains(walletId.toLowerCase())) {
+    return null;
+  }
+  return walletId;
+}
+
+Future<String> resolveAppointmentWalletId({
+  required String? profileWalletId,
+  required Future<String> Function() fetchWalletId,
+}) async {
+  final profileWallet = _usableAppointmentWalletId(profileWalletId);
+  if (profileWallet != null) return profileWallet;
+
+  final fetchedWallet = _usableAppointmentWalletId(await fetchWalletId());
+  if (fetchedWallet == null) {
+    throw StateError(_missingAppointmentWalletMessage);
+  }
+  return fetchedWallet;
+}
+
+Map<String, dynamic> buildAppointmentPayload({
+  required Beneficiary beneficiary,
+  required UserDataEntity userData,
+  required String doctorId,
+  required String appointmentDate,
+  required String link,
+  String? walletId,
+}) {
+  final bookingWalletId =
+      _usableAppointmentWalletId(walletId ?? userData.wallet);
+  if (bookingWalletId == null) {
+    throw StateError(_missingAppointmentWalletMessage);
+  }
+
+  return <String, dynamic>{
+    'abhaId': beneficiary.abhaId,
+    'patientName': beneficiary.name,
+    'link': link,
+    'appointmentDate': appointmentDate,
+    'mobile': userData.phoneNumber,
+    'email': profileDisplayEmail(userData),
+    'prescription': '',
+    'doctorOsid': doctorId,
+    'status': 'new',
+    'walletId': bookingWalletId,
+  }..removeWhere((key, value) =>
+      value == null ||
+      (key == 'email' && value is String && value.trim().isEmpty));
+}
+
+String convertTo24HourFormat(String time12Hour) {
+  try {
+    final normalized =
+        time12Hour.replaceAll('\u202F', ' ').replaceAll('\u00A0', ' ');
+    final format12 = DateFormat("h:mm a");
+    final dateTime = format12.parse(normalized);
+    final format24 = DateFormat("HH:mm");
+    return format24.format(dateTime);
+  } catch (e) {
+    debugPrint("Error converting time format: $e");
+    return time12Hour;
+  }
+}
+
 class CreateAppointment extends StatefulWidget {
   final Doctor doctor;
 
@@ -80,9 +156,86 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     super.initState();
     context.read<SeekerProfileBloc>().add(const ProfileUserDataEvent());
     _updateTimeSlots();
-
   }
 
+  Future<void> triggerNotification({
+    required int minutesBefore,
+    String? webViewLink,
+    required UserDataEntity userData,
+  }) async {
+    try {
+      String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
+      String selectedTime = convertTo24HourFormat(selectedTimeSlot);
+      String appointmentDate = "$formattedDate $selectedTime";
+      appointmentDate =
+          appointmentDate.replaceAll(RegExp(r'[\u202F\u00A0]'), ' ');
+
+      print("Debug - Appointment Date String: $appointmentDate");
+
+      // Create a fixed format date string
+      // String fixedDateString = "2025-06-25 02:20 PM";
+      // print("Debug - Input Date String: $fixedDateString");
+
+      // Parse using DateFormat without strict mode first
+      DateTime scheduledDate = DateFormat('yyyy-MM-dd hh:mm a')
+          .parse(appointmentDate); //appointmentDate
+
+      DateTime notificationTime =
+          scheduledDate.subtract(Duration(minutes: minutesBefore));
+
+      print("Debug - Appointment DateTime: $scheduledDate");
+      print("Debug - Notification DateTime: $notificationTime");
+
+      String localTimeZone =
+          await AwesomeNotifications().getLocalTimeZoneIdentifier();
+
+      print("Debug - Parsed DateTime: $scheduledDate");
+
+      // Generate dynamic appointment string for URL
+      String timeFmt = selectedTime.replaceAll(":", "-");
+      String appointment = "$formattedDate-$timeFmt";
+      String dynamicLink = webViewLink ??
+          "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData.kyc?.firstName}-TeleConsultation-${appointment}";
+
+      await AwesomeNotifications().createNotification(
+        content: NotificationContent(
+          id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+          channelKey: 'basic_channel',
+          title: minutesBefore == 15
+              ? 'Appointment Reminder'
+              : 'Appointment Starting Soon',
+          body: minutesBefore == 15
+              ? 'Your doctor appointment is in 15 minutes'
+              : 'Your doctor appointment is starting in 2 minutes',
+          payload: {
+            'appointmentDate': appointmentDate,
+            'doctorName': widget.doctor.name,
+            'navigate': 'viewAppointmentPage',
+            'link': minutesBefore == 2
+                ? dynamicLink
+                : '', // Pass the link or empty string
+            'minutesBefore': minutesBefore.toString(),
+          },
+        ),
+        schedule: NotificationCalendar(
+          year: notificationTime.year,
+          month: notificationTime.month,
+          day: notificationTime.day,
+          hour: notificationTime.hour,
+          minute: notificationTime.minute,
+          second: 0,
+          timeZone: localTimeZone,
+          preciseAlarm: true,
+          allowWhileIdle: true,
+        ),
+      );
+
+      print("Debug - Scheduled for: ${notificationTime.toString()}");
+    } catch (e, stackTrace) {
+      print("Debug - Notification Error: $e");
+      print("Debug - Stack trace: $stackTrace");
+    }
+  }
 
   Future<void> _loadBeneficiaries(UserDataEntity userData) async {
     try {
@@ -101,14 +254,15 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         _beneficiaries = [defaultBeneficiary] +
             (beneficiariesJson != null
                 ? beneficiariesJson
-                .map((jsonStr) => Beneficiary.fromJson(jsonStr))
-                .toList()
+                    .map((jsonStr) => Beneficiary.fromJson(jsonStr))
+                    .toList()
                 : []);
       });
     } catch (e) {
       debugPrint("Error loading beneficiaries: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error loading beneficiaries. Please try again.')),
+        SnackBar(
+            content: Text('Error loading beneficiaries. Please try again.')),
       );
     }
   }
@@ -173,22 +327,10 @@ class _CreateAppointmentState extends State<CreateAppointment> {
 
     while (currentSlot.isBefore(endDateTime)) {
       timeSlots.add(DateFormat.jm().format(currentSlot));
-      currentSlot = currentSlot.add(Duration(minutes: 30));
+      currentSlot = currentSlot.add(Duration(minutes: 20));
     }
 
     return timeSlots;
-  }
-
-  String convertTo24HourFormat(String time12Hour) {
-    try {
-      final format12 = DateFormat("h:mm a");
-      final dateTime = format12.parse(time12Hour);
-      final format24 = DateFormat("HH:mm");
-      return format24.format(dateTime);
-    } catch (e) {
-      debugPrint("Error converting time format: $e");
-      return time12Hour;
-    }
   }
 
   void _disableRandomSlots(List<String> slots) {
@@ -206,24 +348,32 @@ class _CreateAppointmentState extends State<CreateAppointment> {
     }
   }
 
-  Future<void> _submitAppointment( UserDataEntity userData) async {
+  Future<bool> _submitAppointment(UserDataEntity userData) async {
+    if (isLoading) return false;
+
     if (_selectedBeneficiary == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select a beneficiary')),
       );
-      return;
+      return false;
     }
 
     if (selectedTimeSlot.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please select a time slot')),
       );
-      return;
+      return false;
     }
 
     setState(() => isLoading = true);
 
     try {
+      final walletId = await resolveAppointmentWalletId(
+        profileWalletId: userData.wallet,
+        fetchWalletId: () => sl<WalletUseCase>().getWalletId(),
+      );
+      if (!mounted) return false;
+
       String formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
       String selectedTime = convertTo24HourFormat(selectedTimeSlot);
 
@@ -231,41 +381,42 @@ class _CreateAppointmentState extends State<CreateAppointment> {
       String appointment = "$formattedDate-$timeFmt";
       String appointmentDate = "$formattedDate $selectedTime";
 
-      final appointmentData = {
-        "abhaId": _selectedBeneficiary?.abhaId ?? userData?.kyc?.provider.id,
-        "patientName": _selectedBeneficiary?.name ?? userData?.kyc?.firstName,
-        "link":
-        "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary?.name ?? userData?.kyc?.firstName}-TeleConsultation-${appointment}",
-        "appointmentDate": appointmentDate,
-        "mobile": userData?.phoneNumber,
-        "email": userData?.kyc?.email,
-        "prescription": "",
-        "doctorOsid": widget.doctor.id,
-        "status": "new",
-        "walletId": userData?.wallet
-      };
+      final appointmentData = buildAppointmentPayload(
+        beneficiary: _selectedBeneficiary!,
+        userData: userData,
+        walletId: walletId,
+        doctorId: widget.doctor.id,
+        appointmentDate: appointmentDate,
+        link:
+            "https://8x8.vc/vpaas-magic-cookie-cf5217ce8a4048d89baa3f88ab649551/${_selectedBeneficiary!.name}-TeleConsultation-${appointment}",
+      );
 
       final response = await http.post(
-        Uri.parse(
-            '${domain}/registry/api/v1/Appointment'),
+        Uri.parse('${domain}/registry/api/v1/Appointment'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(appointmentData),
       );
+      if (!mounted) return false;
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text('Appointment successfully booked!')),
         );
+        return true;
       } else {
-        throw Exception('Failed to book appointment');
+        throw Exception(
+            'Failed to book appointment (HTTP ${response.statusCode})');
       }
     } catch (e) {
+      if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error booking appointment: ${e.toString()}')),
       );
+      return false;
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -331,7 +482,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
             ),
           ),
           padding: EdgeInsets.all(16.0),
-          child:Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -359,8 +510,7 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                 )
               else
                 Expanded(
-                  child:
-                  ListView.builder(
+                  child: ListView.builder(
                     itemCount: _beneficiaries.length,
                     itemBuilder: (context, index) {
                       final beneficiary = _beneficiaries[index];
@@ -410,9 +560,9 @@ class _CreateAppointmentState extends State<CreateAppointment> {
         body: isLoading
             ? Center(child: CircularProgressIndicator()) // Show loader
             : SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
-                builder: (context, state) {
+                padding: const EdgeInsets.all(16.0),
+                child: BlocBuilder<SeekerProfileBloc, SeekerProfileState>(
+                    builder: (context, state) {
                   if (state.profileState == ProfileState.done) {
                     if (state.userData != null) {
                       _loadBeneficiaries(state.userData!);
@@ -441,12 +591,13 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                                         return Center(
                                           child: CircularProgressIndicator(
                                             value: loadingProgress
-                                                .expectedTotalBytes != null
+                                                        .expectedTotalBytes !=
+                                                    null
                                                 ? loadingProgress
-                                                .cumulativeBytesLoaded /
-                                                (loadingProgress
-                                                    .expectedTotalBytes ??
-                                                    1)
+                                                        .cumulativeBytesLoaded /
+                                                    (loadingProgress
+                                                            .expectedTotalBytes ??
+                                                        1)
                                                 : null,
                                           ),
                                         );
@@ -461,7 +612,8 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                                 ))),
                         SizedBox(height: 16.0),
                         Container(
-                          width: double.infinity, // Makes the card fill the parent width
+                          width: double
+                              .infinity, // Makes the card fill the parent width
                           child: Card(
                             color: Colors.white,
                             elevation: 4,
@@ -509,13 +661,15 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                           elevation: 4,
                           // Adds a shadow effect
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8), // Rounded corners
+                            borderRadius:
+                                BorderRadius.circular(8), // Rounded corners
                           ),
                           margin: EdgeInsets.all(0),
                           // Adds space around the card
                           child: ListTile(
                             title: Text("Select Date"),
-                            subtitle: Text("${selectedDate.toLocal()}".split(' ')[0]),
+                            subtitle:
+                                Text("${selectedDate.toLocal()}".split(' ')[0]),
                             trailing: Icon(Icons.calendar_today),
                             onTap: () => _selectDate(context),
                           ),
@@ -526,25 +680,25 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         _morningSlots.isNotEmpty
                             ? Wrap(
-                          spacing: 8.0,
-                          children: _morningSlots.map((String time) {
-                            return ChoiceChip(
-                              label: Text(time,
-                                  style: TextStyle(color: Colors.white)),
-                              selected: selectedTimeSlot == time,
-                              onSelected: disabledSlots.contains(time)
-                                  ? null
-                                  : (bool selected) {
-                                setState(() {
-                                  selectedTimeSlot = time;
-                                });
-                              },
-                              selectedColor: Colors.blue,
-                              backgroundColor: Colors.blue,
-                              disabledColor: Colors.grey[500],
-                            );
-                          }).toList(),
-                        )
+                                spacing: 8.0,
+                                children: _morningSlots.map((String time) {
+                                  return ChoiceChip(
+                                    label: Text(time,
+                                        style: TextStyle(color: Colors.white)),
+                                    selected: selectedTimeSlot == time,
+                                    onSelected: disabledSlots.contains(time)
+                                        ? null
+                                        : (bool selected) {
+                                            setState(() {
+                                              selectedTimeSlot = time;
+                                            });
+                                          },
+                                    selectedColor: Colors.blue,
+                                    backgroundColor: Colors.blue,
+                                    disabledColor: Colors.grey[500],
+                                  );
+                                }).toList(),
+                              )
                             : Text("No morning slots available"),
                         SizedBox(height: 16.0),
                         // Evening Slots
@@ -552,25 +706,25 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                             style: TextStyle(fontWeight: FontWeight.bold)),
                         _eveningSlots.isNotEmpty
                             ? Wrap(
-                          spacing: 8.0,
-                          children: _eveningSlots.map((String time) {
-                            return ChoiceChip(
-                              label: Text(time,
-                                  style: TextStyle(color: Colors.white)),
-                              selected: selectedTimeSlot == time,
-                              onSelected: disabledSlots.contains(time)
-                                  ? null
-                                  : (bool selected) {
-                                setState(() {
-                                  selectedTimeSlot = time;
-                                });
-                              },
-                              selectedColor: Colors.blue,
-                              backgroundColor: Colors.blue,
-                              disabledColor: Colors.grey[500],
-                            );
-                          }).toList(),
-                        )
+                                spacing: 8.0,
+                                children: _eveningSlots.map((String time) {
+                                  return ChoiceChip(
+                                    label: Text(time,
+                                        style: TextStyle(color: Colors.white)),
+                                    selected: selectedTimeSlot == time,
+                                    onSelected: disabledSlots.contains(time)
+                                        ? null
+                                        : (bool selected) {
+                                            setState(() {
+                                              selectedTimeSlot = time;
+                                            });
+                                          },
+                                    selectedColor: Colors.blue,
+                                    backgroundColor: Colors.blue,
+                                    disabledColor: Colors.grey[500],
+                                  );
+                                }).toList(),
+                              )
                             : Text("No evening slots available"),
                         SizedBox(height: 16.0),
                         Text(
@@ -585,7 +739,8 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                         ElevatedButton(
                           onPressed: () {
                             if (state.userData != null)
-                              _showBeneficiariesPopup(state.userData!); // Show beneficiary selection popup
+                              _showBeneficiariesPopup(state
+                                  .userData!); // Show beneficiary selection popup
                           },
                           child: Text(
                             _selectedBeneficiary == null
@@ -607,16 +762,34 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                         ),
                         SizedBox(height: 16.0),
                         ElevatedButton(
-                          onPressed: () => {
-                            if (state.userData != null)
-                              _submitAppointment( state.userData!)
-                          },
+                          onPressed: isLoading
+                              ? null
+                              : () async {
+                                  if (state.userData != null) {
+                                    final booked = await _submitAppointment(
+                                        state.userData!);
+                                    if (!booked) return;
+                                    await triggerNotification(
+                                      minutesBefore: 15,
+                                      webViewLink: null,
+                                      userData: state.userData!,
+                                    );
+                                    await triggerNotification(
+                                      minutesBefore: 2,
+                                      webViewLink: null,
+                                      userData: state.userData!,
+                                    );
+                                  }
+                                },
                           child: Text('Book Appointment',
-                              style: TextStyle(color: Color(0xFF1581BF))), // Black text
+                              style: TextStyle(
+                                  color: Color(0xFF1581BF))), // Black text
                           style: ElevatedButton.styleFrom(
                             side: BorderSide(
-                                color: Color(0xFF1581BF), width: 2), // Blue border
-                            backgroundColor: Colors.white, // No background color
+                                color: Color(0xFF1581BF),
+                                width: 2), // Blue border
+                            backgroundColor:
+                                Colors.white, // No background color
                             minimumSize: Size(double.infinity, 50),
                           ).copyWith(
                             shape: MaterialStateProperty.all(
@@ -635,6 +808,4 @@ class _CreateAppointmentState extends State<CreateAppointment> {
                   }
                 })));
   }
-
-
 }

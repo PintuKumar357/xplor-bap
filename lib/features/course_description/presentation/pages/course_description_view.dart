@@ -50,7 +50,8 @@ class _CourseDescriptionViewState extends State<CourseDescriptionView> {
             }
 
             if (state is PaymentUrlState) {
-              Navigator.pushNamed(context, Routes.payment, arguments: state.url);
+              Navigator.pushNamed(context, Routes.payment,
+                  arguments: state.url);
             }
             if (state is NavigationSuccessState) {
               Navigator.pushNamedAndRemoveUntil(
@@ -60,19 +61,21 @@ class _CourseDescriptionViewState extends State<CourseDescriptionView> {
               );
             }
           },
-          child: BlocListener<CourseDescriptionBloc, CourseDescriptionState>(listener: (context, state) {
+          child: BlocListener<CourseDescriptionBloc, CourseDescriptionState>(
+              listener: (context, state) {
             if (state is CourseDetailsFailureState) {
               AppUtils.showSnackBar(context, state.error);
             }
             if (state is CourseSelectedState && !state.course.enrolled) {
-              context
-                  .read<ApplyCourseBloc>()
-                  .add(CourseSelectEvent(data: state.course, transactionId: widget.transactionId));
+              context.read<ApplyCourseBloc>().add(CourseSelectEvent(
+                  data: state.course, transactionId: widget.transactionId));
             }
-          }, child: BlocBuilder<ApplyCourseBloc, ApplyCourseState>(builder: (context, applyState) {
+          }, child: BlocBuilder<ApplyCourseBloc, ApplyCourseState>(
+                  builder: (context, applyState) {
             return BlocBuilder<CourseDescriptionBloc, CourseDescriptionState>(
               builder: (context, state) {
-                AppUtils.printLogs("assafsf ${applyState is SuccessOnSelectState && state is CourseSelectedState} ");
+                AppUtils.printLogs(
+                    "assafsf ${applyState is SuccessOnSelectState && state is CourseSelectedState} ");
 
                 if (state is CourseLoaderData) {
                   return const LoadingAnimation();
@@ -89,19 +92,27 @@ class _CourseDescriptionViewState extends State<CourseDescriptionView> {
                                 expandedHeight: 274.h,
                               ),
                               SliverToBoxAdapter(
-                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  DescriptionHeaderWidget(course: state.course),
-                                  DescriptionDetailsWidget(course: state.course),
-                                ]).symmetricPadding(horizontal: AppDimensions.medium),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      DescriptionHeaderWidget(
+                                          course: state.course),
+                                      DescriptionDetailsWidget(
+                                          course: state.course),
+                                    ]).symmetricPadding(
+                                    horizontal: AppDimensions.medium),
                               ),
                             ]),
-                            if (applyState is ApplyFormLoaderState) const LoadingAnimation(),
+                            if (applyState is ApplyFormLoaderState)
+                              const LoadingAnimation(),
                             Positioned(
                               top: 50,
                               left: 18,
                               child: GestureDetector(
                                   onTap: () => Navigator.pop(context),
-                                  child: SvgPicture.asset(Assets.images.leftWhiteArrow)),
+                                  child: SvgPicture.asset(
+                                      Assets.images.leftWhiteArrow)),
                             ),
                           ])),
                           if (!state.course.enrolled) _enrollButton(),
@@ -118,7 +129,8 @@ class _CourseDescriptionViewState extends State<CourseDescriptionView> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        BlocBuilder<ApplyCourseBloc, ApplyCourseState>(builder: (context, state) {
+        BlocBuilder<ApplyCourseBloc, ApplyCourseState>(
+            builder: (context, state) {
           return ButtonWidget(
             isShadow: false,
             onPressed: () async {
@@ -133,7 +145,9 @@ class _CourseDescriptionViewState extends State<CourseDescriptionView> {
                 ? SeekerHomeKeys.plsWait.stringToString
                 : SeekerHomeKeys.enrollNow.stringToString,
             isValid: context.read<ApplyCourseBloc>().isEnabledOnSelect,
-          ).symmetricPadding(vertical: AppDimensions.large.sp, horizontal: AppDimensions.medium.sp);
+          ).symmetricPadding(
+              vertical: AppDimensions.large.sp,
+              horizontal: AppDimensions.medium.sp);
         }),
       ],
     );
@@ -145,7 +159,8 @@ class _CourseDescriptionViewState extends State<CourseDescriptionView> {
           transactionId: context.read<ApplyCourseBloc>().course!.transactionId,
           domain: context.read<ApplyCourseBloc>().course!.domain));
     } else {
-      sl<SharedPreferencesHelper>().setString(PrefConstKeys.loginFrom, PrefConstKeys.seekerHomeKey);
+      sl<SharedPreferencesHelper>()
+          .setString(PrefConstKeys.loginFrom, PrefConstKeys.seekerHomeKey);
       Navigator.pushNamed(context, Routes.login);
     }
   }
@@ -158,7 +173,9 @@ class _CourseDescriptionViewState extends State<CourseDescriptionView> {
             height: 274.h,
             child: CachedNetworkImage(
                 filterQuality: FilterQuality.high,
-                imageUrl: state.course.descriptor.images.isNotEmpty ? state.course.descriptor.images[0] : '',
+                imageUrl: state.course.descriptor.images.isNotEmpty
+                    ? state.course.descriptor.images[0]
+                    : '',
                 placeholder: (context, url) => const Center(
                       child: LoadingAnimation(),
                     ),

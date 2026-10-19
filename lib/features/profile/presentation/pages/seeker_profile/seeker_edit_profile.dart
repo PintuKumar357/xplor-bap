@@ -12,6 +12,7 @@ import '../../../../../utils/widgets/custom_text_form_fields.dart';
 import '../../../../multi_lang/domain/mappers/profile/profile_keys.dart';
 import '../../../../on_boarding/domain/entities/user_data_entity.dart';
 import '../../widgets/phone_number_widget.dart';
+import '../../widgets/profile_display_values.dart';
 
 /// A screen widget to edit user profile details.
 class SeekerEditProfile extends StatefulWidget {
@@ -39,19 +40,27 @@ class _SeekerEditProfileState extends State<SeekerEditProfile> {
     super.initState();
 
     // Initialize the text controllers with user data.
-    nameController.text = '${widget.userData?.kyc?.firstName} ${widget.userData?.kyc?.lastName}';
-    emailController.text = '${widget.userData?.kyc?.email}';
+    nameController.text = profileDisplayName(widget.userData);
+    emailController.text = profileDisplayEmail(widget.userData);
     addressController.text = _formatAddress(widget.userData?.kyc?.address);
-    dobController.text = '${widget.userData?.kyc?.dob}';
-    mobileNumberController.text = '${widget.userData?.phoneNumber}'.replaceAll('${widget.userData?.countryCode}', "");
+    dobController.text = _profileText(widget.userData?.kyc?.dob);
+    mobileNumberController.text = _profileText(widget.userData?.phoneNumber);
 
     // Set gender based on the user data.
-    String gender = widget.userData?.kyc?.gender == 'NA'
-        ? 'NA'
-        : widget.userData?.kyc?.gender == "M"
-            ? ProfileKeys.male.stringToString
-            : ProfileKeys.female.stringToString;
+    final genderCode = _profileText(widget.userData?.kyc?.gender).toUpperCase();
+    String gender = genderCode == 'M' || genderCode == 'MALE'
+        ? ProfileKeys.male.stringToString
+        : genderCode == 'F' || genderCode == 'FEMALE'
+            ? ProfileKeys.female.stringToString
+            : '';
     genderController.text = gender;
+  }
+
+  String _profileText(String? value) {
+    final text = value?.trim() ?? '';
+    return text.toLowerCase() == 'null' || text.toUpperCase() == 'NA'
+        ? ''
+        : text;
   }
 
   @override
@@ -107,7 +116,7 @@ class _SeekerEditProfileState extends State<SeekerEditProfile> {
       AppDimensions.small.verticalSpace, // Add vertical space.
 
       // Conditionally display email input field.
-      widget.userData?.kyc?.email != 'NA'
+        emailController.text.isNotEmpty
           ? CustomTextFormField(
               controller: emailController,
               label: ProfileKeys.email.stringToString,
@@ -152,12 +161,20 @@ class _SeekerEditProfileState extends State<SeekerEditProfile> {
 
   /// Formats the address from a JSON string to a human-readable format.
   String _formatAddress(String? address) {
-    if (address == null) {
+    final text = _profileText(address);
+    if (text.isEmpty || text == '""') {
       return "";
     }
 
-    // Decode JSON string into a map.
-    Map<String, dynamic> addressMap = json.decode(address);
+    dynamic decoded;
+    try {
+      decoded = json.decode(text);
+    } on FormatException {
+      return text;
+    }
+    if (decoded is String) return _profileText(decoded);
+    if (decoded is! Map<String, dynamic>) return '';
+    final addressMap = decoded;
 
     // Create a list of non-null address components.
     List addressComponents = [
@@ -169,7 +186,8 @@ class _SeekerEditProfileState extends State<SeekerEditProfile> {
       addressMap['state'] ?? "",
       addressMap['pincode'] ?? "",
       addressMap['postOffice'] ?? "",
-    ].where((component) => component.isNotEmpty).toList();
+    ].map((component) => _profileText(component.toString()))
+      .where((component) => component.isNotEmpty).toList();
 
     // Join the components with commas.
     final addressString = addressComponents.join(', ');

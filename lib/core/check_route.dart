@@ -4,21 +4,12 @@ import '../const/local_storage/shared_preferences_helper.dart';
 import 'dependency_injection.dart';
 
 String checkRouteBasedOnUserJourney() {
-  var route = Routes.kyc;
-  var kycVerified = sl<SharedPreferencesHelper>().getBoolean(PrefConstKeys.kycVerified);
-  var role = sl<SharedPreferencesHelper>().getString(PrefConstKeys.selectedRole);
+  var prefs = sl<SharedPreferencesHelper>();
+  var role = prefs.getString(PrefConstKeys.selectedRole);
+  var route = role == PrefConstKeys.seekerKey ? Routes.seekerHome : Routes.home;
 
-  if (!kycVerified) {
-    route = Routes.kyc;
-  } else {
-    if (role == PrefConstKeys.seekerKey) {
-      route = Routes.seekerHome;
-    } else {
-      route = Routes.home;
-    }
-    sl<SharedPreferencesHelper>().setBoolean('${PrefConstKeys.kyc}Done', true);
-    sl<SharedPreferencesHelper>().setBoolean(PrefConstKeys.isHomeOpen, true);
-  }
+  prefs.setBoolean('${PrefConstKeys.kyc}Done', true);
+  prefs.setBoolean(PrefConstKeys.isHomeOpen, true);
 
   return route;
 }

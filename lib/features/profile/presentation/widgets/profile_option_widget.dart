@@ -37,7 +37,23 @@ class ProfileOptionWidget extends StatelessWidget {
       /// It navigates to the edit profile page if the index is 0.
       onTap: () {
         // if (index == 0) {
-          Navigator.pushNamed(context, item.route ?? Routes.editProfile, arguments: userData);
+        //Navigator.pushNamed(context, item.route ?? Routes.editProfile, arguments: userData);
+        if (item.route == Routes.viewAppointmentPage) {
+          // For appointments, pass only the phone number
+          Navigator.pushNamed(
+            context,
+            item.route ?? Routes.editProfile,
+            arguments:
+                userData?.phoneNumber, // Pass String instead of UserDataEntity
+          );
+        } else {
+          // For other routes, pass the full userData object
+          Navigator.pushNamed(
+            context,
+            item.route ?? Routes.editProfile,
+            arguments: userData,
+          );
+        }
         // }
       },
       child: Container(
@@ -69,21 +85,23 @@ class ProfileOptionWidget extends StatelessWidget {
               // Add horizontal space between the icon and the text.
               AppDimensions.medium.w.horizontalSpace,
               Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  // Display the title of the profile option with specific font styles.
-                  item.title!.titleBold(
-                    size: AppDimensions.medium.sp,
-                    color: AppColors.blackMedium,
-                  ),
-                  // Add vertical space between the title and subtitle.
-                  AppDimensions.extraSmall.verticalSpace,
-                  // Display the subtitle of the profile option with specific font styles.
-                  item.subTitle!.titleRegular(
-                    size: AppDimensions.smallXL.sp,
-                    color: AppColors.blackMedium,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ]),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Display the title of the profile option with specific font styles.
+                      item.title!.titleBold(
+                        size: AppDimensions.medium.sp,
+                        color: AppColors.blackMedium,
+                      ),
+                      // Add vertical space between the title and subtitle.
+                      AppDimensions.extraSmall.verticalSpace,
+                      // Display the subtitle of the profile option with specific font styles.
+                      item.subTitle!.titleRegular(
+                        size: AppDimensions.smallXL.sp,
+                        color: AppColors.blackMedium,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ]),
               ),
               // Display the right arrow icon.
               SvgPicture.asset(Assets.images.rightArrowProfile),

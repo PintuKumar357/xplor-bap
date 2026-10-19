@@ -78,8 +78,10 @@ class AppRoutes {
         return customPageRoute(ViewBeneficiaryPage());
 
       case Routes.viewAppointmentPage:
-        final userData = settings.arguments as UserDataEntity?;
-        return customPageRoute(ViewAppointment(userData: userData));
+        // final userData = settings.arguments as UserDataEntity?;
+        // return customPageRoute(ViewAppointment(userData: userData));
+        final phoneNumber = settings.arguments as String?;
+        return customPageRoute(ViewAppointment(phoneNumber: phoneNumber));
       case Routes.walkThrough:
         // Return a material route for the main route, displaying HomeTabs widget.
         return customPageRoute(const WalkThroughPages());

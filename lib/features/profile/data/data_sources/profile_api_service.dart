@@ -5,10 +5,13 @@ import '../../../../const/local_storage/shared_preferences_helper.dart';
 import '../../../../core/api_constants.dart';
 import '../../../../core/connection/refresh_token_service.dart';
 import '../../../on_boarding/domain/entities/user_data_entity.dart';
+import '../../domain/entities/profile_activity_counts.dart';
 
 /// Implementation of the ProfileApiService.
 abstract class ProfileApiService {
   Future<UserDataEntity> getUserData();
+
+  Future<ProfileActivityCounts> getActivityCounts(String phoneNumber);
 
   Future<void> logout();
 }
@@ -85,6 +88,65 @@ class ProfileApiServiceImpl implements ProfileApiService {
       AppUtils.printLogs("Profile----> Catch ${AppUtils.handleError(e)}");
       throw Exception(AppUtils.handleError(e));
     }
+  }
+
+  @override
+  Future<ProfileActivityCounts> getActivityCounts(String phoneNumber) async {
+    final authToken = helper != null
+        ? helper!.getString(PrefConstKeys.accessToken)
+        : preferencesHelper.getString(PrefConstKeys.accessToken);
+    final options = Options(
+      contentType: Headers.jsonContentType,
+      headers: {'Authorization': authToken},
+    );
+
+    int? parseCount(dynamic value) {
+      final count = value is int
+          ? value
+          : value is String
+              ? int.tryParse(value)
+              : null;
+      return count != null && count >= 0 ? count : null;
+    }
+
+    Future<int?> fetchAppointmentCount() async {
+      if (phoneNumber.trim().isEmpty) return null;
+      try {
+        final response = await dio.post(
+          '$domain/registry/api/v1/Appointment/search',
+          data: {
+            'offset': 0,
+            'limit': 1,
+            'filters': {
+              'mobile': {'eq': phoneNumber},
+            },
+          },
+          options: options,
+        );
+        return parseCount(response.data['totalCount']);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    Future<int?> fetchOrderCount() async {
+      try {
+        final response = await dio.get(
+          myOrdersApi,
+          queryParameters: {'page': 1, 'pageSize': 1},
+          options: options,
+        );
+        return parseCount(response.data['data']['totalCount']);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final counts = await Future.wait([
+      fetchAppointmentCount(),
+      fetchOrderCount(),
+    ]);
+    return ProfileActivityCounts(appointments: counts[0], orders: counts[1]);
   }
 
   /// Performs a logout action for the user.

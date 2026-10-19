@@ -20,6 +20,7 @@ import '../../bloc/agent_profile_bloc/agent_profile_bloc.dart';
 import '../../widgets/agent_profile_top_header_widget.dart';
 import '../../widgets/agent_titles_widget.dart';
 import '../../widgets/logout_button_widget.dart';
+import '../../widgets/profile_display_values.dart';
 import '../../../../../utils/widgets/profile_header__widget.dart';
 import '../../widgets/profile_option_widget.dart';
 
@@ -150,7 +151,7 @@ class _AgentProfilePageViewState extends State<AgentProfilePageView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ProfileHeaderWidget(
-          name: '${state.userData?.kyc?.firstName} ${state.userData?.kyc?.lastName}',
+          name: profileDisplayName(state.userData),
           role: '${state.userData?.role?.type}',
           imageUrl: state.userData?.profileUrl,
           userData: state.userData,

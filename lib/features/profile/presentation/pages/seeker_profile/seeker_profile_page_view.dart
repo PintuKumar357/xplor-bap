@@ -10,6 +10,7 @@ import '../../../../../utils/app_utils/app_utils.dart';
 import '../../../../../utils/widgets/loading_animation.dart';
 import '../../../../multi_lang/presentation/blocs/bloc/translate_bloc.dart';
 import '../../widgets/logout_button_widget.dart';
+import '../../widgets/profile_display_values.dart';
 import '../../widgets/profile_option_widget.dart';
 import '../../../../../utils/common_top_header.dart';
 import '../../../../../utils/extensions/padding.dart';
@@ -50,7 +51,9 @@ class _SeekerProfilePageViewState extends State<SeekerProfilePageView> {
       _profileCardOptions = __profileCardOptions();
     }
     // Trigger an event to load user data for the profile.
-    context.read<SeekerProfileBloc>().add(const ProfileUserDataEvent());
+    context.read<SeekerProfileBloc>().add(
+      const ProfileUserDataEvent(loadActivityCounts: true),
+    );
   }
 
   List<ProfileCardOptionsEntity> __profileCardOptions() {
@@ -178,7 +181,7 @@ class _SeekerProfilePageViewState extends State<SeekerProfilePageView> {
       children: [
         // Display profile header.
         ProfileHeaderWidget(
-          name: '${state.userData?.kyc?.firstName} ${state.userData?.kyc?.lastName}',
+          name: profileDisplayName(state.userData),
           role: '${state.userData?.role?.type}',
           imageUrl: state.userData?.profileUrl,
           userData: state.userData,
@@ -219,19 +222,31 @@ class _SeekerProfilePageViewState extends State<SeekerProfilePageView> {
         Expanded(
           child: ProfileSkillTileWidget(
             title: ProfileKeys.myJob.stringToString,
+            fullWidthTitle: true,
             icon: Assets.images.job,
-            value: '${state.userData?.count.job}',
+            value: state.isCountsLoading
+              ? '...'
+              : state.activityCounts.appointments?.toString() ?? '-',
             backgroundColor: AppColors.lightGreen.withOpacity(0.25),
           ),
         ),
-        // AppDimensions.smallXL.w.horizontalSpace,
+        const SizedBox(width: AppDimensions.smallXL),
         Expanded(
           child: GestureDetector(
-            onTap: () => Navigator.pushNamed(context, Routes.myOrders),
+            onTap: () async {
+              await Navigator.pushNamed(context, Routes.myOrders);
+              if (!mounted) return;
+              context.read<SeekerProfileBloc>().add(
+                const ProfileUserDataEvent(loadActivityCounts: true),
+              );
+            },
             child: ProfileSkillTileWidget(
               title: ProfileKeys.orders.stringToString,
+              fullWidthTitle: true,
               icon: Assets.images.skilling,
-              value: '${state.userData?.count.orders}',
+                value: state.isCountsLoading
+                  ? '...'
+                  : state.activityCounts.orders?.toString() ?? '-',
               backgroundColor: AppColors.lightBlueProfileTiles,
             ),
           ),
